@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complex Website Test - DOM Scanner</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+    }
+    h1 { color: #333; }
+    h3 { color: #666; margin-top: 30px; }
+    .test-section {
+      background: #f8f9fa;
+      padding: 20px;
+      margin: 15px 0;
+      border-left: 4px solid #007bff;
+      border-radius: 5px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+    .warning { color: #ffc107; }
+    .results {
+      background: #1e1e1e;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: monospace;
+      margin-top: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* Simulated loading */
+    .loading-spinner {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #007bff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    .loading-spinner.active { display: block; }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Simulated auto-generated classes (like React/Vue) */
+    .css-1a2b3c4 { padding: 10px; }
+    ._generated123 { color: #333; }
+    .sc-abc123 { font-size: 14px; }
+
+    /* Shadow DOM host */
+    custom-button {
+      display: inline-block;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Complex Website Simulator</h1>
+    <p>This page simulates challenges found in real complex websites</p>
+
+    <div class="test-section">
+      <h3>Test 1: Dynamic Content (Lazy Loading)</h3>
+      <button onclick="loadDynamicContent()">Simulate Lazy Load</button>
+      <div class="loading-spinner" id="spinner"></div>
+      <div id="dynamic-content"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>Test 2: Auto-Generated Class Names (React/Vue Style)</h3>
+      <button class="css-1a2b3c4 _generated123">Button with Generated Classes</button>
+      <button class="sc-abc123" data-testid="stable-btn">Button with data-testid</button>
+      <p class="warning">⚠️ First button has unstable classes - should fall back to tag selector</p>
+      <p class="success">✓ Second button has data-testid - should use that</p>
+    </div>
+
+    <div class="test-section">
+      <h3>Test 3: Shadow DOM (Web Components)</h3>
+      <div id="shadow-host"></div>
+      <p class="warning">⚠️ Elements inside Shadow DOM are hidden from normal querySelectorAll</p>
+    </div>
+
+    <div class="test-section">
+      <h3>Test 4: Same-Origin iFrame</h3>
+      <iframe id="test-iframe" style="width: 100%; height: 150px; border: 1px solid #ddd; border-radius: 5px;"></iframe>
+      <p class="warning">⚠️ Elements inside iframe require separate scanning</p>
+    </div>
+
+    <div class="test-section">
+      <h3>Test 5: Hidden/Offscreen Elements</h3>
+      <button style="position: absolute; left: -9999px;">Hidden Button</button>
+      <button style="opacity: 0;">Invisible Button</button>
+      <button style="display: none;">Display None Button</button>
+      <div style="height: 2000px;"></div>
+      <button style="margin-top: 500px;">Below Fold Button</button>
+      <p class="warning">⚠️ Scanner should handle visibility intelligently</p>
+    </div>
+
+    <div class="test-section">
+      <h3>Run Scanner Tests</h3>
+      <button onclick="runSimpleScan()">Test: Simple Scanner</button>
+      <button onclick="runRobustScan()">Test: Robust Scanner</button>
+      <button onclick="compareScans()">Compare Both</button>
+      <div class="results" id="results"></div>
+    </div>
+  </div>
+
+  <!-- Load both scanners -->
+  <script src="simple-dom-scanner.js"></script>
+  <script src="robust-dom-scanner.js"></script>
+
+  <script>
+    const results = document.getElementById('results');
+
+    function log(message, type = '') {
+      const line = document.createElement('div');
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      if (type) line.className = type;
+      results.appendChild(line);
+      results.scrollTop = results.scrollHeight;
+    }
+
+    // Simulate dynamic content loading
+    function loadDynamicContent() {
+      const spinner = document.getElementById('spinner');
+      const content = document.getElementById('dynamic-content');
+
+      spinner.classList.add('active');
+      content.innerHTML = '<p>Loading...</p>';
+
+      setTimeout(() => {
+        spinner.classList.remove('active');
+        content.innerHTML = `
+          <button>Dynamically Loaded Button 1</button>
+          <button>Dynamically Loaded Button 2</button>
+          <input type="text" placeholder="Dynamic Input">
+          <p class="success">✓ Content loaded after 2 seconds</p>
+        `;
+        log('Dynamic content loaded', 'success');
+      }, 2000);
+    }
+
+    // Create Shadow DOM
+    function createShadowDOM() {
+      const host = document.getElementById('shadow-host');
+      if (host.shadowRoot) return; // Already created
+
+      const shadow = host.attachShadow({ mode: 'open' });
+      shadow.innerHTML = `
+        <style>
+          button { background: #6f42c1; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 5px; cursor: pointer; }
+        </style>
+        <button>Shadow DOM Button 1</button>
+        <button>Shadow DOM Button 2</button>
+        <input type="text" placeholder="Shadow DOM Input">
+      `;
+      log('Shadow DOM created', 'success');
+    }
+
+    // Create iframe content
+    function setupIframe() {
+      const iframe = document.getElementById('test-iframe');
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial; padding: 20px; }
+            button { background: #17a2b8; color: white; padding: 8px 16px; border: none; border-radius: 4px; margin: 5px; cursor: pointer; }
+          </style>
+        </head>
+        <body>
+          <h4>iframe Content</h4>
+          <button>iframe Button 1</button>
+          <button>iframe Button 2</button>
+          <input type="text" placeholder="iframe Input">
+        </body>
+        </html>
+      `);
+      iframeDoc.close();
+      log('iframe content loaded', 'success');
+    }
+
+    // Test simple scanner
+    async function runSimpleScan() {
+      log('Running SIMPLE scanner...', 'warning');
+      try {
+        const startTime = performance.now();
+        const elements = window.simpleScanner.scan({ maxElements: 200 });
+        const endTime = performance.now();
+
+        log(`✓ Simple scanner found ${elements.length} elements in ${(endTime - startTime).toFixed(2)}ms`, 'success');
+
+        // Check what it found
+        const inShadowDOM = elements.filter(e => e.text.includes('Shadow DOM')).length;
+        const iniframe = elements.filter(e => e.text.includes('iframe')).length;
+        const dynamic = elements.filter(e => e.text.includes('Dynamically Loaded')).length;
+
+        log(`  - Shadow DOM elements: ${inShadowDOM}`, inShadowDOM > 0 ? 'success' : 'error');
+        log(`  - iframe elements: ${iniframe}`, iniframe > 0 ? 'success' : 'error');
+        log(`  - Dynamic elements: ${dynamic}`, dynamic > 0 ? 'success' : 'error');
+
+      } catch (error) {
+        log(`✗ Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Test robust scanner
+    async function runRobustScan() {
+      log('Running ROBUST scanner...', 'warning');
+      try {
+        const startTime = performance.now();
+        const elements = await window.robustScanner.scan({
+          maxElements: 200,
+          includeShadowDOM: true,
+          includeIframes: true,
+          includeHidden: false
+        });
+        const endTime = performance.now();
+
+        log(`✓ Robust scanner found ${elements.length} elements in ${(endTime - startTime).toFixed(2)}ms`, 'success');
+
+        // Check what it found
+        const inShadowDOM = elements.filter(e => e.text.includes('Shadow DOM')).length;
+        const iniframe = elements.filter(e => e.text.includes('iframe')).length;
+        const dynamic = elements.filter(e => e.text.includes('Dynamically Loaded')).length;
+
+        log(`  - Shadow DOM elements: ${inShadowDOM}`, inShadowDOM > 0 ? 'success' : 'error');
+        log(`  - iframe elements: ${iniframe}`, iniframe > 0 ? 'success' : 'error');
+        log(`  - Dynamic elements: ${dynamic}`, dynamic > 0 ? 'success' : 'error');
+
+        // Check selector quality
+        const withTestId = elements.filter(e => e.selector.includes('data-testid')).length;
+        const withGeneratedClass = elements.filter(e => e.selector.match(/css-|_generated|sc-/)).length;
+
+        log(`  - Stable selectors (data-testid): ${withTestId}`, 'success');
+        log(`  - Unstable selectors (generated): ${withGeneratedClass}`, withGeneratedClass === 0 ? 'success' : 'warning');
+
+      } catch (error) {
+        log(`✗ Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Compare both scanners
+    async function compareScans() {
+      results.innerHTML = '';
+      log('=== COMPARISON TEST ===', 'warning');
+      await runSimpleScan();
+      log('---', 'warning');
+      await runRobustScan();
+      log('=== END COMPARISON ===', 'warning');
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      createShadowDOM();
+      setupIframe();
+      log('Page loaded - Complex scenarios ready', 'success');
+      log('Click "Compare Both" to see the difference!', 'warning');
+    });
+  </script>
+</body>
+</html>

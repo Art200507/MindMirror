@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Music - MindMirror</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #07080d;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      color: #fff;
+      position: relative;
+      scroll-behavior: smooth;
+    }
+
+    /* Animated neon cube background */
+    #neon-cube-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    .mood-music-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Hero section */
+    .hero-section {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* Analysis section */
+    .analysis-section {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Glassmorphism cards with neon glow */
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 0 60px rgba(0, 0, 0, 0.4),
+        0 0 30px rgba(123, 63, 255, 0.15),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(157, 227, 255, 0.2);
+      box-shadow:
+        inset 0 0 60px rgba(0, 0, 0, 0.4),
+        0 0 40px rgba(0, 217, 255, 0.25),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #9de3ff;
+      text-shadow: 0 0 20px rgba(123, 63, 255, 0.5);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .camera-preview-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/10;
+      max-height: 240px;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(157, 227, 255, 0.2);
+      box-shadow: 0 0 30px rgba(0, 217, 255, 0.2);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .camera-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: rgba(0, 217, 255, 0.1);
+      border-radius: 12px;
+      font-size: 13px;
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      box-shadow: 0 0 15px rgba(0, 217, 255, 0.15);
+      color: #9de3ff;
+      font-weight: 500;
+    }
+
+    .emotion-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .emotion-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .emotion-label {
+      width: 90px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 11px;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 28px;
+      background: rgba(11, 14, 23, 0.6);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .bar-fill {
+      height: 100%;
+      transition: width 0.3s ease;
+      border-radius: 14px;
+      box-shadow: 0 0 20px currentColor;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated shimmer effect on bars */
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      100% { left: 100%; }
+    }
+
+    .emotion-value {
+      width: 50px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 700;
+      color: #9de3ff;
+      text-shadow: 0 0 10px rgba(157, 227, 255, 0.5);
+    }
+
+    /* Neon gradient emotion bars */
+    [data-emotion="happy"] .bar-fill {
+      background: linear-gradient(90deg, #7b3fff 0%, #00d9ff 100%);
+      color: #00d9ff;
+    }
+    [data-emotion="sad"] .bar-fill {
+      background: linear-gradient(90deg, #3b82f6 0%, #7b3fff 100%);
+      color: #7b3fff;
+    }
+    [data-emotion="angry"] .bar-fill {
+      background: linear-gradient(90deg, #ff3b6d 0%, #ff8c00 100%);
+      color: #ff3b6d;
+    }
+    [data-emotion="surprised"] .bar-fill {
+      background: linear-gradient(90deg, #a78bfa 0%, #00d9ff 100%);
+      color: #00d9ff;
+    }
+    [data-emotion="neutral"] .bar-fill {
+      background: linear-gradient(90deg, #5fb6ff 0%, #9de3ff 100%);
+      color: #9de3ff;
+    }
+
+    .mood-modes {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .mood-mode-btn {
+      flex: 1;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      backdrop-filter: blur(8px);
+    }
+
+    .mood-mode-btn:hover {
+      background: rgba(123, 63, 255, 0.15);
+      border-color: rgba(123, 63, 255, 0.4);
+      color: #9de3ff;
+      box-shadow: 0 0 20px rgba(123, 63, 255, 0.3);
+    }
+
+    .mood-mode-btn.active {
+      background: linear-gradient(135deg, rgba(123, 63, 255, 0.3), rgba(0, 217, 255, 0.2));
+      border-color: #00d9ff;
+      color: #fff;
+      box-shadow: 0 0 30px rgba(0, 217, 255, 0.4);
+    }
+
+    .control-btn {
+      padding: 16px 32px;
+      background: linear-gradient(135deg, #7b3fff 0%, #00d9ff 100%);
+      border: 1px solid rgba(157, 227, 255, 0.3);
+      border-radius: 14px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 0 30px rgba(123, 63, 255, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .control-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .control-btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .control-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 40px rgba(0, 217, 255, 0.6), 0 12px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .spotify-embed-container {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(157, 227, 255, 0.2);
+      box-shadow: 0 0 30px rgba(123, 63, 255, 0.2);
+    }
+
+    #emotion-section, #music-section, #face-3d-section {
+      display: none;
+    }
+
+    .dominant-emotion-display {
+      text-align: center;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(123, 63, 255, 0.1), rgba(0, 217, 255, 0.05));
+      border-radius: 16px;
+      margin-top: 16px;
+      border: 1px solid rgba(157, 227, 255, 0.15);
+      box-shadow: 0 0 20px rgba(123, 63, 255, 0.15);
+    }
+
+    .dominant-emotion-display h3 {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #9de3ff;
+    }
+
+    .dominant-emotion-display .emotion-value {
+      font-size: 28px;
+      font-weight: 800;
+      text-transform: capitalize;
+      background: linear-gradient(135deg, #7b3fff, #00d9ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 30px rgba(0, 217, 255, 0.5);
+    }
+
+    /* Pulsing glow animation */
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(123, 63, 255, 0.3);
+      }
+      50% {
+        box-shadow: 0 0 40px rgba(0, 217, 255, 0.5);
+      }
+    }
+
+    .card {
+      animation: pulse-glow 4s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated Neon Cube Background -->
+  <div id="neon-cube-bg"></div>
+
+  <div class="mood-music-container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <!-- Camera Section -->
+      <div class="card">
+        <h2>📹 Camera</h2>
+        <div class="camera-preview-wrapper">
+          <video id="camera-preview" autoplay playsinline></video>
+        </div>
+        <div class="camera-status" id="camera-status">
+          <span>Camera Ready</span>
+        </div>
+        <button class="control-btn" id="start-analysis-btn" style="margin-top: 16px; display: flex;">
+          ▶️ Start Analysis
+        </button>
+        <button class="control-btn" id="capture-mood-btn" style="margin-top: 16px; display: none; background: #10b981;">
+          🎵 Capture This Mood
+        </button>
+        <button class="control-btn" id="restart-analysis-btn" style="margin-top: 16px; display: none; background: #3b82f6;">
+          🔄 Start Over
+        </button>
+      </div>
+
+      <!-- Emotion Analysis Section -->
+      <div class="card" id="emotion-section">
+        <h2>🧠 Emotion Analysis</h2>
+        <div class="emotion-bars">
+          <div class="emotion-bar" data-emotion="happy">
+            <span class="emotion-label">Happy</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-happy" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-happy">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="sad">
+            <span class="emotion-label">Sad</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-sad" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-sad">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="angry">
+            <span class="emotion-label">Angry</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-angry" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-angry">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="surprised">
+            <span class="emotion-label">Surprised</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-surprised" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-surprised">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="neutral">
+            <span class="emotion-label">Neutral</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-neutral" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-neutral">0%</span>
+          </div>
+        </div>
+        <div class="dominant-emotion-display">
+          <h3>Dominant Emotion</h3>
+          <div class="emotion-value" id="dominant-emotion">Neutral</div>
+        </div>
+
+        <!-- Valence & Arousal Section -->
+        <div style="margin-top: 20px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px;">📊 Mood Dimensions</h3>
+
+          <!-- Valence (Negative to Positive) -->
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+              <span>😞 Negative</span>
+              <span style="font-weight: 600;">Valence</span>
+              <span>😊 Positive</span>
+            </div>
+            <div style="position: relative; height: 20px; background: linear-gradient(90deg, #ef4444, #fbbf24, #10b981); border-radius: 10px; overflow: hidden;">
+              <div id="valence-indicator" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 4px; height: 100%; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
+            </div>
+            <div style="text-align: center; font-size: 12px; margin-top: 4px;">
+              <span id="valence-value">0</span>
+            </div>
+          </div>
+
+          <!-- Arousal (Calm to Excited) -->
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+              <span>😴 Calm</span>
+              <span style="font-weight: 600;">Arousal</span>
+              <span>🔥 Excited</span>
+            </div>
+            <div style="position: relative; height: 20px; background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6); border-radius: 10px; overflow: hidden;">
+              <div id="arousal-indicator" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 4px; height: 100%; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
+            </div>
+            <div style="text-align: center; font-size: 12px; margin-top: 4px;">
+              <span id="arousal-value">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D Face Visualization -->
+      <div class="card" id="face-3d-section" style="display: none;">
+        <h2>🎭 3D Face Model</h2>
+        <div id="face-3d-container" style="width: 100%; height: 400px; background: #000; border-radius: 12px; position: relative;">
+          <!-- Three.js will render here -->
+        </div>
+        <div style="text-align: center; margin-top: 12px; font-size: 14px; opacity: 0.8;">
+          Real-time expression mirroring
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <!-- Music Section -->
+      <div class="card" id="music-section">
+        <h2>🎵 Mood Music</h2>
+        <div class="mood-modes">
+          <button class="mood-mode-btn active" id="match-mode-btn" data-mood-mode="match">Match</button>
+          <button class="mood-mode-btn" id="boost-mode-btn" data-mood-mode="boost">Boost</button>
+          <button class="mood-mode-btn" id="energy-mode-btn" data-mood-mode="energy">Energy</button>
+        </div>
+        <div class="spotify-embed-container">
+          <iframe
+            id="spotify-player"
+            style="border-radius:12px"
+            src=""
+            width="100%"
+            height="352"
+            frameBorder="0"
+            allowfullscreen=""
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy">
+          </iframe>
+        </div>
+        <div style="text-align: center; margin-top: 12px; font-size: 14px;">
+          Current mood: <span id="current-playlist-mood" style="font-weight: 600;">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MorphCast SDK -->
+  <script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
+
+  <!-- Three.js for 3D -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Three.js Post-processing -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+
+  <script>
+    // Spotify Configuration
+    const SPOTIFY_CONFIG = {
+      moodPlaylists: {
+        match: {
+          happy: '37i9dQZF1DXdPec7aLTmlC',
+          sad: '37i9dQZF1DX3YSRoSdA634',
+          angry: '37i9dQZF1DX1tyCD9QhIWF',
+          surprised: '37i9dQZF1DX4dyzvuaRJ0n',
+          neutral: '37i9dQZF1DX4sWSpwq3LiO'
+        },
+        boost: {
+          happy: '37i9dQZF1DX0XUsuxWHRQd',
+          sad: '37i9dQZF1DX3rxVfibe1L0',
+          angry: '37i9dQZF1DWXti3N4Wp5xy',
+          surprised: '37i9dQZF1DX4dyzvuaRJ0n',
+          neutral: '37i9dQZF1DX3rxVfibe1L0'
+        },
+        energy: {
+          high: '37i9dQZF1DX76Wlfdnj7AP',
+          medium: '37i9dQZF1DX2sUQwD7tbmL',
+          low: '37i9dQZF1DWZd79rJ6a7lp'
+        }
+      }
+    };
+
+    // Neon Cube Background
+    (function initNeonCube() {
+      const container = document.getElementById('neon-cube-bg');
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x07080d);
+      scene.fog = new THREE.Fog(0x07080d, 10, 20);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      container.appendChild(renderer.domElement);
+
+      const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 0, 5.4);
+
+      // Lights
+      scene.add(new THREE.AmbientLight(0x3f5fff, 0.22));
+      const rim = new THREE.DirectionalLight(0x6aa2ff, 0.55);
+      rim.position.set(-3, 2, 4);
+      scene.add(rim);
+
+      // Shader Neon Cube (reduced segments for performance)
+      const cubeGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5, 64, 64, 64);
+      const neonMat = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: {
+          u_time: { value: 0 },
+          u_base: { value: new THREE.Color(0x0b0e17) },
+          u_neonA: { value: new THREE.Color(0x7b3fff) },
+          u_neonB: { value: new THREE.Color(0x00d9ff) },
+          u_intensity: { value: 1.45 },
+          u_gridScale: { value: 6.0 },
+        },
+        vertexShader: `
+          varying vec3 vPos; varying vec3 vN;
+          void main(){ vPos = position; vN = normalMatrix * normal; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }
+        `,
+        fragmentShader: `
+          precision highp float; varying vec3 vPos; varying vec3 vN;
+          uniform vec3 u_base, u_neonA, u_neonB; uniform float u_time, u_intensity, u_gridScale;
+          float grid(float x, float s){ float a=abs(fract(x*s-0.5)-0.5)/fwidth(x*s); return 1.0 - smoothstep(0.0,1.0,a); }
+          void main(){
+            float g = max(grid(vPos.x,u_gridScale), max(grid(vPos.y,u_gridScale), grid(vPos.z,u_gridScale)));
+            float r = length(vPos.yz);
+            float core = smoothstep(0.68, 0.08, 1.0 - r) * (0.55 + 0.45*sin(u_time*2.6 + r*12.0));
+            vec3 neon = mix(u_neonA, u_neonB, 0.5 + 0.5*sin(u_time*0.8));
+            float fres = pow(1.0 - max(dot(normalize(vN), vec3(0.0,0.0,1.0)), 0.0), 2.0) * 0.25;
+            vec3 col = u_base + neon * (g*1.0*u_intensity + core*1.35 + fres);
+            gl_FragColor = vec4(col, clamp(g+core+0.25, 0.25, 1.0));
+          }
+        `,
+      });
+      const cube = new THREE.Mesh(cubeGeo, neonMat);
+      scene.add(cube);
+
+      // Wireframe edges
+      const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.5, 1.5, 1.5));
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0x9de3ff, transparent: true, opacity: 0.35 });
+      const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+      scene.add(edges);
+
+      // Smaller background cubes (blurred, slow-moving)
+      const smallCubes = [];
+      const positions = [
+        { x: -4, y: 2, z: -3, scale: 0.4 },
+        { x: 5, y: -2.5, z: -4, scale: 0.5 },
+        { x: -3.5, y: -3, z: -5, scale: 0.35 },
+        { x: 4.5, y: 3, z: -6, scale: 0.45 }
+      ];
+
+      positions.forEach(pos => {
+        const smallGeo = new THREE.BoxGeometry(pos.scale, pos.scale, pos.scale, 32, 32, 32);
+        const smallMat = neonMat.clone();
+        smallMat.uniforms = {
+          ...neonMat.uniforms,
+          u_intensity: { value: 0.8 }
+        };
+        const smallCube = new THREE.Mesh(smallGeo, smallMat);
+        smallCube.position.set(pos.x, pos.y, pos.z);
+        smallCube.userData = { speedX: Math.random() * 0.3, speedY: Math.random() * 0.4 };
+        scene.add(smallCube);
+        smallCubes.push(smallCube);
+      });
+
+      // Micro particle orbit (reduced count for performance)
+      const orbitGeo = new THREE.BufferGeometry();
+      const count = 120;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const r = 2.6 + (Math.random() - 0.5) * 0.1;
+        positions[i * 3] = Math.cos(a) * r;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 0.35;
+        positions[i * 3 + 2] = Math.sin(a) * r;
+      }
+      orbitGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const orbitMat = new THREE.PointsMaterial({ color: 0x9de3ff, size: 0.02, transparent: true, opacity: 0.85 });
+      const orbit = new THREE.Points(orbitGeo, orbitMat);
+      scene.add(orbit);
+
+      // Minimal starfield
+      const starGeo = new THREE.BufferGeometry();
+      const starCount = 300;
+      const starPos = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount; i++) {
+        const r = 10 + Math.random() * 12;
+        const th = Math.random() * Math.PI * 2;
+        const ph = Math.acos(Math.random() * 2 - 1);
+        starPos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+        starPos[i * 3 + 1] = r * Math.sin(ph) * Math.sin(th);
+        starPos[i * 3 + 2] = r * Math.cos(ph);
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      const starMat = new THREE.PointsMaterial({ color: 0x5fb6ff, size: 0.018, transparent: true, opacity: 0.55 });
+      const stars = new THREE.Points(starGeo, starMat);
+      scene.add(stars);
+
+      // Bloom post-processing
+      const composer = new THREE.EffectComposer(renderer);
+      composer.addPass(new THREE.RenderPass(scene, camera));
+      const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.35, 0.45, 0.82);
+      bloom.threshold = 0.16;
+      bloom.strength = 1.38;
+      bloom.radius = 0.85;
+      composer.addPass(bloom);
+
+      // Animation
+      const clock = new THREE.Clock();
+      const spinX = 2.8, spinY = 3.6;
+      const floatAmp = 0.16, floatHz = 0.9;
+
+      let isHighPerformance = true; // Will be set to false when analyzer starts
+      window.setCubePerformanceMode = (highPerf) => { isHighPerformance = highPerf; };
+
+      function animate() {
+        const dt = clock.getDelta();
+        const t = clock.elapsedTime;
+
+        neonMat.uniforms.u_time.value = t;
+
+        // Main cube - reduce speed when low performance mode
+        const speedMult = isHighPerformance ? 1.0 : 0.5;
+        cube.rotation.x += spinX * dt * speedMult;
+        cube.rotation.y += spinY * dt * speedMult;
+        edges.rotation.copy(cube.rotation);
+        cube.position.y = Math.sin(t * Math.PI * 2 * floatHz) * floatAmp;
+        edges.position.copy(cube.position);
+
+        // Animate smaller background cubes (slow rotation)
+        smallCubes.forEach(smallCube => {
+          smallCube.rotation.x += smallCube.userData.speedX * dt;
+          smallCube.rotation.y += smallCube.userData.speedY * dt;
+        });
+
+        orbit.rotation.y = t * 0.55 * speedMult;
+        stars.rotation.y = t * 0.02;
+
+        composer.render();
+        requestAnimationFrame(animate);
+      }
+      animate();
+
+      // Resize handler
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+      });
+    })();
+
+    // MorphCast Service
+    class MorphCastService {
+      constructor() {
+        this.isInitialized = false;
+        this.isAnalyzing = false;
+        this.videoElement = null;
+        this.stream = null;
+        this.currentEmotions = {
+          happy: 0, sad: 0, angry: 0, surprised: 0, neutral: 0
+        };
+        this.dominantEmotion = 'neutral';
+        this.valence = 0;  // -1 (negative) to +1 (positive)
+        this.arousal = 0;  // -1 (calm) to +1 (excited)
+        this.emotionHistory = [];
+        this.historySize = 10;
+        this.onEmotionUpdate = null;
+
+        window.addEventListener('CY_FACE_EMOTION_RESULT', (event) => {
+          this.handleMorphCastEmotion(event.detail);
+        });
+      }
+
+      async initialize(videoElement) {
+        this.videoElement = videoElement;
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          audio: false
+        });
+        this.videoElement.srcObject = this.stream;
+        await new Promise((resolve) => {
+          this.videoElement.onloadedmetadata = resolve;
+        });
+        this.isInitialized = true;
+        console.log('[MorphCast] Camera initialized');
+        return true;
+      }
+
+      handleMorphCastEmotion(event) {
+        if (!event.output || !event.output.emotion) return;
+        const emotions = event.output.emotion;
+        this.currentEmotions.happy = (emotions.Happy || 0) * 100;
+        this.currentEmotions.sad = (emotions.Sad || 0) * 100;
+        this.currentEmotions.angry = (emotions.Angry || 0) * 100;
+        this.currentEmotions.surprised = (emotions.Surprise || 0) * 100;
+        this.currentEmotions.neutral = (emotions.Neutral || 0) * 100;
+
+        // Capture valence and arousal
+        if (event.output.valence !== undefined) {
+          this.valence = event.output.valence;
+        }
+        if (event.output.arousal !== undefined) {
+          this.arousal = event.output.arousal;
+        }
+      }
+
+      async startAnalysis() {
+        this.isAnalyzing = true;
+        this.analysisLoop();
+      }
+
+      analysisLoop() {
+        if (!this.isAnalyzing) return;
+        this.emotionHistory.push({ ...this.currentEmotions });
+        if (this.emotionHistory.length > this.historySize) {
+          this.emotionHistory.shift();
+        }
+        this.updateDominantEmotion();
+        if (this.onEmotionUpdate) {
+          this.onEmotionUpdate({
+            emotions: { ...this.currentEmotions },
+            dominant: this.dominantEmotion,
+            valence: this.valence,
+            arousal: this.arousal
+          });
+        }
+        setTimeout(() => this.analysisLoop(), 100);
+      }
+
+      updateDominantEmotion() {
+        let maxEmotion = 'neutral';
+        let maxValue = 0;
+        for (const [emotion, value] of Object.entries(this.currentEmotions)) {
+          if (value > maxValue) {
+            maxValue = value;
+            maxEmotion = emotion;
+          }
+        }
+        if (maxValue > 20) {
+          this.dominantEmotion = maxEmotion;
+        } else {
+          this.dominantEmotion = 'neutral';
+        }
+      }
+
+      cleanup() {
+        this.isAnalyzing = false;
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => track.stop());
+        }
+      }
+    }
+
+    // Controller
+    class MoodMusicController {
+      constructor() {
+        this.morphcastService = new MorphCastService();
+        this.currentMusicMode = 'match';
+        this.lastPlayedEmotion = null;
+        this.faceModel = null; // Will be initialized when analysis starts
+        this.init();
+      }
+
+      init() {
+        document.getElementById('start-analysis-btn').addEventListener('click', () => this.handleStartAnalysis());
+        document.getElementById('capture-mood-btn').addEventListener('click', () => this.handleCaptureMood());
+        document.getElementById('restart-analysis-btn').addEventListener('click', () => this.handleRestart());
+
+        const switchMusicMode = (mode) => {
+          this.currentMusicMode = mode;
+          document.querySelectorAll('.mood-mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.moodMode === mode);
+          });
+          if (this.lastPlayedEmotion) {
+            this.updateMusicPlayer(this.lastPlayedEmotion);
+          }
+        };
+
+        document.getElementById('match-mode-btn').addEventListener('click', () => switchMusicMode('match'));
+        document.getElementById('boost-mode-btn').addEventListener('click', () => switchMusicMode('boost'));
+        document.getElementById('energy-mode-btn').addEventListener('click', () => switchMusicMode('energy'));
+      }
+
+      async handleStartAnalysis() {
+        try {
+          const cameraStatus = document.getElementById('camera-status').querySelector('span');
+          cameraStatus.textContent = 'Initializing camera...';
+
+          await this.morphcastService.initialize(document.getElementById('camera-preview'));
+
+          cameraStatus.textContent = 'Loading MorphCast AI...';
+
+          // Wait for MorphCast
+          const morphCastReady = new Promise((resolve) => {
+            if (window.morphCastStart) {
+              resolve();
+            } else {
+              window.addEventListener('MORPHCAST_READY', resolve, { once: true });
+            }
+          });
+
+          await morphCastReady;
+
+          if (window.morphCastStart) {
+            await window.morphCastStart();
+            console.log('[Mood Music] ✅ MorphCast started!');
+            cameraStatus.textContent = 'Camera active - Real emotion detection';
+          }
+
+          this.morphcastService.onEmotionUpdate = (data) => this.updateEmotionUI(data);
+          await this.morphcastService.startAnalysis();
+
+          // Show emotion section and capture button
+          document.getElementById('start-analysis-btn').style.display = 'none';
+          document.getElementById('capture-mood-btn').style.display = 'flex';
+          document.getElementById('emotion-section').style.display = 'block';
+
+          // Initialize and show 3D face model
+          document.getElementById('face-3d-section').style.display = 'block';
+          if (!this.faceModel) {
+            this.faceModel = new FaceModel3D('face-3d-container');
+          }
+
+          // Music section stays hidden until user captures mood
+
+        } catch (error) {
+          alert(`Error: ${error.message}`);
+        }
+      }
+
+      async handleCaptureMood() {
+        // Stop camera and analysis
+        if (window.morphCastStop) await window.morphCastStop();
+        this.morphcastService.cleanup();
+
+        const cameraStatus = document.getElementById('camera-status').querySelector('span');
+        cameraStatus.textContent = `Mood locked: ${this.lastPlayedEmotion || 'neutral'}`;
+
+        // Hide capture button, show restart button
+        document.getElementById('capture-mood-btn').style.display = 'none';
+        document.getElementById('restart-analysis-btn').style.display = 'flex';
+
+        // Show music section and start playing
+        document.getElementById('music-section').style.display = 'block';
+
+        // Update music player with locked emotion
+        const lockedEmotion = this.lastPlayedEmotion || 'neutral';
+        this.updateMusicPlayer(lockedEmotion);
+
+        console.log(`[Mood Music] Captured and locked emotion: ${lockedEmotion}`);
+      }
+
+      async handleRestart() {
+        // Reset UI
+        document.getElementById('restart-analysis-btn').style.display = 'none';
+        document.getElementById('start-analysis-btn').style.display = 'flex';
+        document.getElementById('emotion-section').style.display = 'none';
+        document.getElementById('music-section').style.display = 'none';
+        document.getElementById('face-3d-section').style.display = 'none';
+
+        const cameraStatus = document.getElementById('camera-status').querySelector('span');
+        cameraStatus.textContent = 'Camera Ready';
+
+        // Reset emotion bars
+        ['happy', 'sad', 'angry', 'surprised', 'neutral'].forEach(emotion => {
+          document.getElementById(`emotion-${emotion}`).style.width = '0%';
+          document.getElementById(`value-${emotion}`).textContent = '0%';
+        });
+        document.getElementById('dominant-emotion').textContent = 'Neutral';
+
+        console.log('[Mood Music] Restarted - ready for new analysis');
+      }
+
+      updateEmotionUI(data) {
+        ['happy', 'sad', 'angry', 'surprised', 'neutral'].forEach(emotion => {
+          const value = Math.round(data.emotions[emotion] || 0);
+          document.getElementById(`emotion-${emotion}`).style.width = `${value}%`;
+          document.getElementById(`value-${emotion}`).textContent = `${value}%`;
+        });
+        document.getElementById('dominant-emotion').textContent = data.dominant;
+
+        // Update valence indicator (REVERSED: -1 to +1 maps to 100% to 0%)
+        const valence = data.valence || 0;
+        const valencePercent = ((1 - valence) / 2) * 100; // REVERSED: -1→100%, +1→0%
+        document.getElementById('valence-indicator').style.left = `${valencePercent}%`;
+        document.getElementById('valence-value').textContent = valence.toFixed(2);
+
+        // Update arousal indicator (REVERSED: -1 to +1 maps to 100% to 0%)
+        const arousal = data.arousal || 0;
+        const arousalPercent = ((1 - arousal) / 2) * 100; // REVERSED: -1→100%, +1→0%
+        document.getElementById('arousal-indicator').style.left = `${arousalPercent}%`;
+        document.getElementById('arousal-value').textContent = arousal.toFixed(2);
+
+        // Store current dominant emotion (but don't play music automatically)
+        this.lastPlayedEmotion = data.dominant;
+
+        // Update 3D face model
+        if (this.faceModel) {
+          this.faceModel.updateExpression(data.emotions);
+        }
+
+        // Music only plays when user clicks "Capture This Mood"
+      }
+
+      updateMusicPlayer(emotion) {
+        this.lastPlayedEmotion = emotion;
+        const playlists = SPOTIFY_CONFIG.moodPlaylists[this.currentMusicMode];
+        const playlistId = playlists[emotion] || playlists.neutral;
+        document.getElementById('spotify-player').src = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
+        document.getElementById('current-playlist-mood').textContent = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+        console.log(`[Mood Music] Playing ${emotion} - ${this.currentMusicMode} mode`);
+      }
+    }
+
+    // 3D Face Model Visualizer
+    class FaceModel3D {
+      constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.head = null;
+        this.leftEye = null;
+        this.rightEye = null;
+        this.mouth = null;
+        this.leftEyebrow = null;
+        this.rightEyebrow = null;
+        this.init();
+      }
+
+      init() {
+        // Scene setup
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x1a1a2e);
+
+        // Camera
+        this.camera = new THREE.PerspectiveCamera(
+          75,
+          this.container.offsetWidth / this.container.offsetHeight,
+          0.1,
+          1000
+        );
+        this.camera.position.z = 5;
+
+        // Renderer
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setSize(this.container.offsetWidth, this.container.offsetHeight);
+        this.container.appendChild(this.renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 0.8);
+        pointLight.position.set(5, 5, 5);
+        this.scene.add(pointLight);
+
+        // Create head
+        this.createFace();
+
+        // Start animation
+        this.animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => this.onResize());
+      }
+
+      createFace() {
+        // Head (sphere)
+        const headGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+        const headMaterial = new THREE.MeshPhongMaterial({
+          color: 0xffdbac,
+          shininess: 30
+        });
+        this.head = new THREE.Mesh(headGeometry, headMaterial);
+        this.scene.add(this.head);
+
+        // Left eye
+        const eyeGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+        const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+        this.leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        this.leftEye.position.set(-0.4, 0.3, 1.3);
+        this.head.add(this.leftEye);
+
+        // Right eye
+        this.rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        this.rightEye.position.set(0.4, 0.3, 1.3);
+        this.head.add(this.rightEye);
+
+        // Mouth (torus for smile/frown)
+        const mouthGeometry = new THREE.TorusGeometry(0.4, 0.08, 16, 32, Math.PI);
+        const mouthMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+        this.mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+        this.mouth.position.set(0, -0.3, 1.2);
+        this.mouth.rotation.x = Math.PI;
+        this.head.add(this.mouth);
+
+        // Left eyebrow
+        const eyebrowGeometry = new THREE.BoxGeometry(0.4, 0.08, 0.08);
+        const eyebrowMaterial = new THREE.MeshPhongMaterial({ color: 0x654321 });
+        this.leftEyebrow = new THREE.Mesh(eyebrowGeometry, eyebrowMaterial);
+        this.leftEyebrow.position.set(-0.4, 0.6, 1.3);
+        this.head.add(this.leftEyebrow);
+
+        // Right eyebrow
+        this.rightEyebrow = new THREE.Mesh(eyebrowGeometry, eyebrowMaterial);
+        this.rightEyebrow.position.set(0.4, 0.6, 1.3);
+        this.head.add(this.rightEyebrow);
+      }
+
+      updateExpression(emotions) {
+        const { happy, sad, angry, surprised, neutral } = emotions;
+
+        // Mouth expression
+        if (happy > 50) {
+          // Smile - curve up
+          this.mouth.rotation.x = Math.PI - (happy / 100) * 0.5;
+          this.mouth.position.y = -0.3 - (happy / 100) * 0.2;
+        } else if (sad > 50) {
+          // Frown - curve down
+          this.mouth.rotation.x = Math.PI + (sad / 100) * 0.5;
+          this.mouth.position.y = -0.3 + (sad / 100) * 0.1;
+        } else {
+          // Neutral
+          this.mouth.rotation.x = Math.PI;
+          this.mouth.position.y = -0.3;
+        }
+
+        // Eyebrows
+        if (angry > 50) {
+          // Angry - eyebrows down and angled
+          this.leftEyebrow.rotation.z = (angry / 100) * 0.3;
+          this.rightEyebrow.rotation.z = -(angry / 100) * 0.3;
+          this.leftEyebrow.position.y = 0.5;
+          this.rightEyebrow.position.y = 0.5;
+        } else if (surprised > 50) {
+          // Surprised - eyebrows up
+          this.leftEyebrow.position.y = 0.7 + (surprised / 100) * 0.2;
+          this.rightEyebrow.position.y = 0.7 + (surprised / 100) * 0.2;
+          this.leftEyebrow.rotation.z = 0;
+          this.rightEyebrow.rotation.z = 0;
+        } else {
+          // Neutral
+          this.leftEyebrow.position.y = 0.6;
+          this.rightEyebrow.position.y = 0.6;
+          this.leftEyebrow.rotation.z = 0;
+          this.rightEyebrow.rotation.z = 0;
+        }
+
+        // Eyes
+        if (surprised > 50) {
+          // Wide eyes
+          const scale = 1 + (surprised / 100) * 0.5;
+          this.leftEye.scale.set(scale, scale, scale);
+          this.rightEye.scale.set(scale, scale, scale);
+        } else {
+          this.leftEye.scale.set(1, 1, 1);
+          this.rightEye.scale.set(1, 1, 1);
+        }
+
+        // Head tilt based on emotion
+        const tiltAmount = (happy - sad) / 200; // -0.5 to 0.5
+        this.head.rotation.z = tiltAmount * 0.3;
+      }
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+
+        // Slow rotation
+        this.head.rotation.y += 0.002;
+
+        this.renderer.render(this.scene, this.camera);
+      }
+
+      onResize() {
+        const width = this.container.offsetWidth;
+        const height = this.container.offsetHeight;
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(width, height);
+      }
+    }
+
+    // Initialize MorphCast
+    (function() {
+      const initMorphCast = () => {
+        if (typeof CY === 'undefined' || !CY.loader) {
+          setTimeout(initMorphCast, 100);
+          return;
+        }
+        console.log('[MorphCast] Initializing SDK...');
+        CY.loader()
+          .licenseKey("apfbff9db84145a06a047cf6d1915506638bde2ae52ac7")
+          .addModule(CY.modules().FACE_EMOTION.name, {smoothness: 0.40})
+          .addModule(CY.modules().FACE_DETECTOR.name, {maxInputFrameSize: 320, smoothness: 0.83})
+          .load()
+          .then(({ start, stop }) => {
+            console.log('[MorphCast] ✅ SDK ready!');
+            window.morphCastStart = start;
+            window.morphCastStop = stop;
+            window.dispatchEvent(new CustomEvent('MORPHCAST_READY', { detail: { start, stop } }));
+          })
+          .catch((error) => console.error('[MorphCast] Error:', error));
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMorphCast);
+      } else {
+        initMorphCast();
+      }
+    })();
+
+    // Start controller
+    document.addEventListener('DOMContentLoaded', () => {
+      new MoodMusicController();
+    });
+  </script>
+</body>
+</html>

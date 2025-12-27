@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Music - MindMirror</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #07080d;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      color: #fff;
+      position: relative;
+      scroll-behavior: smooth;
+    }
+
+    /* Animated neon cube background */
+    #neon-cube-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    .mood-music-container {
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 60px 40px 100px;
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    /* Hero section */
+    .hero-section {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* Analysis section */
+    .analysis-section {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Panels - for compatibility */
+    .left-panel, .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Glassmorphism cards with neon glow */
+    .card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 32px;
+      border: 1px solid rgba(157, 227, 255, 0.15);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.1),
+        inset 0 0 80px rgba(0, 0, 0, 0.3),
+        0 0 40px rgba(123, 63, 255, 0.2),
+        0 8px 32px rgba(0, 0, 0, 0.4);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(157, 227, 255, 0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .card:hover::before {
+      left: 100%;
+    }
+
+    .card:hover {
+      border-color: rgba(157, 227, 255, 0.3);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.15),
+        inset 0 0 80px rgba(0, 0, 0, 0.3),
+        0 0 60px rgba(0, 217, 255, 0.35),
+        0 12px 40px rgba(0, 0, 0, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .card h2 {
+      font-size: 22px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #9de3ff, #7b3fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+    }
+
+    .camera-preview-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/10;
+      max-height: 280px;
+      background: linear-gradient(135deg, #000000, #0a0a1a);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(157, 227, 255, 0.3);
+      box-shadow:
+        0 0 40px rgba(0, 217, 255, 0.3),
+        inset 0 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .camera-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, rgba(0, 217, 255, 0.15), rgba(123, 63, 255, 0.1));
+      border-radius: 14px;
+      font-size: 14px;
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+      color: #9de3ff;
+      font-weight: 600;
+      margin-top: 16px;
+    }
+
+    .emotion-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .emotion-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .emotion-label {
+      width: 90px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 11px;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 32px;
+      background: rgba(11, 14, 23, 0.7);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+    }
+
+    .bar-fill {
+      height: 100%;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 16px;
+      box-shadow: 0 0 25px currentColor;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated shimmer effect on bars */
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      100% { left: 100%; }
+    }
+
+    .emotion-value {
+      width: 50px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 700;
+      color: #9de3ff;
+      text-shadow: 0 0 10px rgba(157, 227, 255, 0.5);
+    }
+
+    /* Neon gradient emotion bars */
+    [data-emotion="happy"] .bar-fill {
+      background: linear-gradient(90deg, #7b3fff 0%, #00d9ff 100%);
+      color: #00d9ff;
+    }
+    [data-emotion="sad"] .bar-fill {
+      background: linear-gradient(90deg, #3b82f6 0%, #7b3fff 100%);
+      color: #7b3fff;
+    }
+    [data-emotion="angry"] .bar-fill {
+      background: linear-gradient(90deg, #ff3b6d 0%, #ff8c00 100%);
+      color: #ff3b6d;
+    }
+    [data-emotion="surprised"] .bar-fill {
+      background: linear-gradient(90deg, #a78bfa 0%, #00d9ff 100%);
+      color: #00d9ff;
+    }
+    [data-emotion="neutral"] .bar-fill {
+      background: linear-gradient(90deg, #5fb6ff 0%, #9de3ff 100%);
+      color: #9de3ff;
+    }
+
+    .mood-modes {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .mood-mode-btn {
+      flex: 1;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mood-mode-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(123, 63, 255, 0.2), rgba(0, 217, 255, 0.2));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .mood-mode-btn:hover {
+      background: rgba(123, 63, 255, 0.15);
+      border-color: rgba(123, 63, 255, 0.5);
+      color: #9de3ff;
+      box-shadow: 0 0 25px rgba(123, 63, 255, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .mood-mode-btn:hover::before {
+      opacity: 1;
+    }
+
+    .mood-mode-btn.active {
+      background: linear-gradient(135deg, rgba(123, 63, 255, 0.35), rgba(0, 217, 255, 0.25));
+      border-color: rgba(0, 217, 255, 0.6);
+      color: #fff;
+      box-shadow:
+        0 0 35px rgba(0, 217, 255, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .mood-mode-btn.active::before {
+      opacity: 1;
+    }
+
+    .control-btn {
+      padding: 18px 36px;
+      background: linear-gradient(135deg, #7b3fff 0%, #00d9ff 100%);
+      border: 2px solid rgba(157, 227, 255, 0.4);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      box-shadow:
+        0 0 40px rgba(123, 63, 255, 0.5),
+        0 8px 20px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .control-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .control-btn:hover::before {
+      width: 400px;
+      height: 400px;
+    }
+
+    .control-btn:hover {
+      transform: translateY(-3px) scale(1.02);
+      border-color: rgba(157, 227, 255, 0.6);
+      box-shadow:
+        0 0 60px rgba(0, 217, 255, 0.7),
+        0 15px 30px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .control-btn:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    .spotify-embed-container {
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(157, 227, 255, 0.25);
+      box-shadow:
+        0 0 40px rgba(123, 63, 255, 0.3),
+        inset 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    #emotion-section, #music-section {
+      display: none;
+    }
+
+    .dominant-emotion-display {
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(123, 63, 255, 0.15), rgba(0, 217, 255, 0.08));
+      border-radius: 18px;
+      margin-top: 20px;
+      border: 1.5px solid rgba(157, 227, 255, 0.2);
+      box-shadow:
+        0 0 30px rgba(123, 63, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .dominant-emotion-display h3 {
+      font-size: 12px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #e0f2ff;
+      font-weight: 600;
+    }
+
+    .dominant-emotion-display .emotion-value {
+      font-size: 32px;
+      font-weight: 800;
+      text-transform: capitalize;
+      color: #00d9ff;
+      text-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+    }
+
+    /* Pulsing glow animation */
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(123, 63, 255, 0.3);
+      }
+      50% {
+        box-shadow: 0 0 40px rgba(0, 217, 255, 0.5);
+      }
+    }
+
+    .card {
+      animation: pulse-glow 4s ease-in-out infinite;
+    }
+
+    /* Thoughts Section */
+    .thoughts-card {
+      background: linear-gradient(135deg, rgba(123, 63, 255, 0.12), rgba(0, 217, 255, 0.08));
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .thought-display {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .thought-text {
+      font-size: 20px;
+      line-height: 1.6;
+      color: #e0f2ff;
+      font-style: italic;
+      font-weight: 500;
+      text-shadow: 0 0 20px rgba(157, 227, 255, 0.3);
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .thought-controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .thought-btn {
+      flex: 1;
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1.5px solid rgba(157, 227, 255, 0.2);
+      border-radius: 12px;
+      color: #9de3ff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .thought-btn:hover {
+      background: rgba(0, 217, 255, 0.15);
+      border-color: rgba(0, 217, 255, 0.4);
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .thought-category {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(123, 63, 255, 0.2);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #9de3ff;
+      margin-bottom: 16px;
+      border: 1px solid rgba(157, 227, 255, 0.3);
+    }
+
+    /* Accessibility Controls */
+    .accessibility-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .accessibility-btn {
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(15px);
+      border: 1.5px solid rgba(157, 227, 255, 0.3);
+      border-radius: 12px;
+      color: #9de3ff;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .accessibility-btn:hover {
+      background: rgba(0, 217, 255, 0.2);
+      border-color: rgba(0, 217, 255, 0.5);
+      box-shadow: 0 0 30px rgba(0, 217, 255, 0.4);
+      transform: scale(1.1);
+    }
+
+    .accessibility-btn.active {
+      background: linear-gradient(135deg, rgba(123, 63, 255, 0.4), rgba(0, 217, 255, 0.3));
+      border-color: rgba(0, 217, 255, 0.6);
+    }
+
+    /* High Contrast Mode */
+    body.high-contrast {
+      background: #000;
+    }
+
+    body.high-contrast .card {
+      background: #1a1a1a;
+      border-color: #fff;
+    }
+
+    body.high-contrast .card h2,
+    body.high-contrast .thought-text,
+    body.high-contrast .emotion-value {
+      color: #fff !important;
+      -webkit-text-fill-color: #fff !important;
+    }
+
+    /* Reduced Motion */
+    body.reduce-motion * {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    /* Large Text Mode */
+    body.large-text {
+      font-size: 120%;
+    }
+
+    body.large-text .thought-text {
+      font-size: 24px;
+    }
+
+    body.large-text .card h2 {
+      font-size: 26px;
+    }
+
+    /* Mood Quadrant Visualizer */
+    .mood-quadrant-display {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(11, 14, 23, 0.5);
+      border-radius: 14px;
+      border: 1px solid rgba(157, 227, 255, 0.15);
+    }
+
+    .quadrant-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 2px;
+      height: 120px;
+      background: rgba(157, 227, 255, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .quadrant-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+      padding: 8px;
+      opacity: 0.3;
+      transition: all 0.3s ease;
+      line-height: 1.3;
+    }
+
+    .quadrant-cell.active {
+      opacity: 1;
+      box-shadow: inset 0 0 30px currentColor;
+    }
+
+    .q1-cell {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(16, 185, 129, 0.2));
+      color: #fbbf24;
+      grid-area: 1 / 2 / 2 / 3;
+    }
+
+    .q2-cell {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(255, 140, 0, 0.2));
+      color: #ff8c00;
+      grid-area: 1 / 1 / 2 / 2;
+    }
+
+    .q3-cell {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(123, 63, 255, 0.2));
+      color: #7b3fff;
+      grid-area: 2 / 1 / 3 / 2;
+    }
+
+    .q4-cell {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(96, 165, 250, 0.2));
+      color: #60a5fa;
+      grid-area: 2 / 2 / 3 / 3;
+    }
+
+    .quadrant-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-top: 8px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated Neon Cube Background -->
+  <div id="neon-cube-bg"></div>
+
+  <!-- Accessibility Panel -->
+  <div class="accessibility-panel" role="toolbar" aria-label="Accessibility controls">
+    <button class="accessibility-btn" id="high-contrast-btn" aria-label="Toggle high contrast mode" title="High Contrast">
+      ◐
+    </button>
+    <button class="accessibility-btn" id="reduce-motion-btn" aria-label="Reduce motion" title="Reduce Motion">
+      ⏸
+    </button>
+    <button class="accessibility-btn" id="large-text-btn" aria-label="Large text mode" title="Large Text">
+      A+
+    </button>
+    <button class="accessibility-btn" id="read-aloud-btn" aria-label="Read thought aloud" title="Read Aloud">
+      🔊
+    </button>
+  </div>
+
+  <div class="mood-music-container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <!-- Camera Section -->
+      <div class="card">
+        <h2>Camera</h2>
+        <div class="camera-preview-wrapper">
+          <video id="camera-preview" autoplay playsinline></video>
+        </div>
+        <div class="camera-status" id="camera-status">
+          <span>Camera Ready</span>
+        </div>
+        <button class="control-btn" id="start-analysis-btn" style="margin-top: 16px; display: flex;">
+          Start Analysis
+        </button>
+        <button class="control-btn" id="capture-mood-btn" style="margin-top: 16px; display: none; background: #10b981;">
+          Capture This Mood
+        </button>
+        <button class="control-btn" id="restart-analysis-btn" style="margin-top: 16px; display: none; background: #3b82f6;">
+          Start Over
+        </button>
+      </div>
+
+      <!-- Emotion Analysis Section -->
+      <div class="card" id="emotion-section">
+        <h2>Emotion Analysis</h2>
+        <div class="emotion-bars">
+          <div class="emotion-bar" data-emotion="happy">
+            <span class="emotion-label">Happy</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-happy" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-happy">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="sad">
+            <span class="emotion-label">Sad</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-sad" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-sad">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="angry">
+            <span class="emotion-label">Angry</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-angry" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-angry">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="surprised">
+            <span class="emotion-label">Surprised</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-surprised" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-surprised">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="neutral">
+            <span class="emotion-label">Neutral</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-neutral" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-neutral">0%</span>
+          </div>
+        </div>
+        <div class="dominant-emotion-display">
+          <h3>Dominant Emotion</h3>
+          <div class="emotion-value" id="dominant-emotion">Neutral</div>
+        </div>
+
+        <!-- Valence & Arousal Section -->
+        <div style="margin-top: 20px;">
+          <h3 style="font-size: 16px; margin-bottom: 16px; font-weight: 700; text-align: center;">Mood Dimensions</h3>
+
+          <!-- Valence (Negative to Positive) -->
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 8px; font-weight: 600;">
+              <span style="color: #ef4444;">Negative</span>
+              <span style="color: #9de3ff; font-size: 14px;">VALENCE</span>
+              <span style="color: #10b981;">Positive</span>
+            </div>
+            <div style="position: relative; height: 32px; background: linear-gradient(90deg, #ef4444, #fbbf24, #10b981); border-radius: 16px; overflow: hidden; border: 2px solid rgba(157, 227, 255, 0.3); box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);">
+              <div id="valence-indicator" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 6px; height: 120%; background: #fff; box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(0, 217, 255, 0.6); border-radius: 3px;"></div>
+            </div>
+            <div style="text-align: center; font-size: 14px; margin-top: 8px; font-weight: 700; color: #9de3ff;">
+              <span id="valence-value">0.00</span>
+            </div>
+          </div>
+
+          <!-- Arousal (Calm to Excited) -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 8px; font-weight: 600;">
+              <span style="color: #60a5fa;">Calm</span>
+              <span style="color: #9de3ff; font-size: 14px;">AROUSAL</span>
+              <span style="color: #f472b6;">Energized</span>
+            </div>
+            <div style="position: relative; height: 32px; background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6); border-radius: 16px; overflow: hidden; border: 2px solid rgba(157, 227, 255, 0.3); box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);">
+              <div id="arousal-indicator" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 6px; height: 120%; background: #fff; box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(0, 217, 255, 0.6); border-radius: 3px;"></div>
+            </div>
+            <div style="text-align: center; font-size: 14px; margin-top: 8px; font-weight: 700; color: #9de3ff;">
+              <span id="arousal-value">0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mood Quadrant Visualizer -->
+        <div class="mood-quadrant-display">
+          <h3 style="font-size: 14px; margin-bottom: 12px; text-align: center; font-weight: 700;">Mood Quadrant</h3>
+          <div class="quadrant-grid">
+            <div class="quadrant-cell q2-cell" data-quadrant="q2">
+              INTENSE<br>& POWERFUL
+            </div>
+            <div class="quadrant-cell q1-cell" data-quadrant="q1">
+              ENERGIZED<br>& JOYFUL
+            </div>
+            <div class="quadrant-cell q3-cell" data-quadrant="q3">
+              GENTLE<br>& HEALING
+            </div>
+            <div class="quadrant-cell q4-cell" data-quadrant="q4">
+              PEACEFUL<br>& CENTERED
+            </div>
+          </div>
+          <div class="quadrant-label">
+            <span>← Negative</span>
+            <span>Positive →</span>
+          </div>
+          <div style="text-align: center; font-size: 10px; margin-top: 4px; opacity: 0.6;">
+            <span>↓ Low Energy / High Energy ↑</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <!-- Music Section -->
+      <div class="card" id="music-section">
+        <h2>Mood Music</h2>
+        <div class="mood-modes">
+          <button class="mood-mode-btn active" id="match-mode-btn" data-mood-mode="match">Match</button>
+          <button class="mood-mode-btn" id="boost-mode-btn" data-mood-mode="boost">Boost</button>
+          <button class="mood-mode-btn" id="energy-mode-btn" data-mood-mode="energy">Energy</button>
+        </div>
+        <div class="spotify-embed-container">
+          <iframe
+            id="spotify-player"
+            style="border-radius:12px"
+            src=""
+            width="100%"
+            height="352"
+            frameBorder="0"
+            allowfullscreen=""
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy">
+          </iframe>
+        </div>
+        <div style="text-align: center; margin-top: 12px; font-size: 14px;">
+          Current mood: <span id="current-playlist-mood" style="font-weight: 600;">-</span>
+        </div>
+      </div>
+
+      <!-- Thoughts Section -->
+      <div class="card thoughts-card" id="thoughts-section" style="display: none;">
+        <h2>Mood Thoughts</h2>
+        <div style="text-align: center;">
+          <span class="thought-category" id="thought-category">Uplifting</span>
+        </div>
+        <div class="thought-display">
+          <p class="thought-text" id="thought-text">Your personalized thought will appear here...</p>
+        </div>
+        <div class="thought-controls">
+          <button class="thought-btn" id="new-thought-btn">
+            New Thought
+          </button>
+          <button class="thought-btn" id="copy-thought-btn">
+            Copy
+          </button>
+          <button class="thought-btn" id="save-thought-btn">
+            Save
+          </button>
+        </div>
+        <div id="saved-thoughts-container" style="margin-top: 20px; display: none;">
+          <h3 style="font-size: 14px; opacity: 0.8; margin-bottom: 12px;">Saved Thoughts</h3>
+          <div id="saved-thoughts-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MorphCast SDK -->
+  <script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
+
+  <!-- Three.js for 3D -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Three.js Post-processing -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+
+  <script>
+    // Spotify Configuration - Emotion-only playlists
+    const SPOTIFY_CONFIG = {
+      moodPlaylists: {
+        match: {
+          happy: {
+            id: '37i9dQZF1DXdPec7aLTmlC',
+            name: 'Happy Vibes',
+            description: 'Feel-good pop and dance energy to mirror your smile.'
+          },
+          sad: {
+            id: '37i9dQZF1DX3YSRoSdA634',
+            name: 'Melancholy & Healing',
+            description: 'Gentle tracks that sit with you while you process.'
+          },
+          angry: {
+            id: '37i9dQZF1DX1tyCD9QhIWF',
+            name: 'Release The Fire',
+            description: 'Guitar-driven catharsis for intense emotions.'
+          },
+          surprised: {
+            id: '37i9dQZF1DX4dyzvuaRJ0n',
+            name: 'Wonder & Discovery',
+            description: 'Upbeat variety for curious, unexpected moments.'
+          },
+          neutral: {
+            id: '37i9dQZF1DX4sWSpwq3LiO',
+            name: 'Calm Focus',
+            description: 'Lo-fi calm for steady, centered moods.'
+          }
+        },
+        boost: {
+          happy: {
+            id: '37i9dQZF1DX0XUsuxWHRQd',
+            name: 'Instant Sunshine',
+            description: 'Pure serotonin shots when you want even more joy.'
+          },
+          sad: {
+            id: '37i9dQZF1DX3rxVfibe1L0',
+            name: 'Confidence Boosters',
+            description: 'Anthems that gently pick you back up.'
+          },
+          angry: {
+            id: '37i9dQZF1DWXti3N4Wp5xy',
+            name: 'Rage Release',
+            description: 'Hard beats to vent, move, and reset.'
+          },
+          surprised: {
+            id: '37i9dQZF1DX4dyzvuaRJ0n',
+            name: 'Spark Curiosity',
+            description: 'Colorful sounds to celebrate the unexpected.'
+          },
+          neutral: {
+            id: '37i9dQZF1DX3rxVfibe1L0',
+            name: 'Momentum Builder',
+            description: 'Motivational pop that nudges you forward.'
+          }
+        },
+        energy: {
+          happy: {
+            id: '37i9dQZF1DX76Wlfdnj7AP',
+            name: 'Beast Mode Boost',
+            description: 'Max intensity motivation for big smiles.'
+          },
+          sad: {
+            id: '37i9dQZF1DX3rxVfibe1L0',
+            name: 'Bold & Rising',
+            description: 'High-energy empowerment to climb back up.'
+          },
+          angry: {
+            id: '37i9dQZF1DWXti3N4Wp5xy',
+            name: 'Adrenaline Release',
+            description: 'Channel the surge into movement and focus.'
+          },
+          surprised: {
+            id: '37i9dQZF1DX2sUQwD7tbmL',
+            name: 'Adrenaline Rush',
+            description: 'Pulsing rhythms for spontaneous adventures.'
+          },
+          neutral: {
+            id: '37i9dQZF1DWZd79rJ6a7lp',
+            name: 'Flow State',
+            description: 'Steady pulse to keep you gliding.'
+          }
+        }
+      }
+    };
+
+    // Thoughts Database - Emotion prompts (legacy quadrant data retained for reference)
+    const THOUGHTS_DATABASE = {
+      // Quadrant-based thoughts (primary system)
+      quadrants: {
+        // Q1: Positive Valence + High Arousal (Excited, Energized, Elated)
+        q1: {
+          category: "Energized & Joyful",
+          thoughts: [
+            "Your energy is electric! Channel this excitement into something amazing today.",
+            "You're radiating pure joy and vitality! This is your moment to shine.",
+            "Ride this wave of enthusiasm! Your positive energy is unstoppable right now.",
+            "You're on fire with positivity! Use this momentum to chase your dreams.",
+            "This excitement you feel is powerful fuel. What incredible thing will you create?",
+            "Your joy is contagious and your energy is limitless! Go make magic happen!",
+            "You're bursting with possibility! The world needs your vibrant energy today.",
+            "This exhilaration is your superpower. Share it, amplify it, celebrate it!",
+            "You're in the zone! Your high spirits can move mountains today.",
+            "Pure euphoria! Let this energy propel you toward your biggest goals."
+          ]
+        },
+
+        // Q2: Negative Valence + High Arousal (Angry, Tense, Frustrated)
+        q2: {
+          category: "Intense & Powerful",
+          thoughts: [
+            "This intensity you feel is powerful. Channel it into positive action, not reaction.",
+            "Your passion is fierce right now. Breathe deep and direct this energy wisely.",
+            "Strong emotions = strong person. Take a moment to ground yourself before acting.",
+            "This fire inside you can forge change. Let it fuel purpose, not destruction.",
+            "Your feelings are valid and intense. Pause, breathe, then choose your response.",
+            "This energy is raw power. Transform it from frustration into determination.",
+            "You're feeling everything intensely right now. That's strength, not weakness.",
+            "Harness this intensity. You have the power to turn anger into advocacy.",
+            "This surge of emotion shows you care deeply. Channel it constructively.",
+            "Breathe through the storm. Your passion can create positive change when focused."
+          ]
+        },
+
+        // Q3: Negative Valence + Low Arousal (Sad, Depressed, Melancholic)
+        q3: {
+          category: "Gentle & Healing",
+          thoughts: [
+            "It's okay to feel low. Rest is part of healing. Be gentle with yourself.",
+            "Even in darkness, your worth never diminishes. You're allowed to just be right now.",
+            "Sadness is not failure. It's proof you've loved, cared, and lived fully.",
+            "This heaviness won't last forever. For now, just breathe and allow yourself to feel.",
+            "You don't have to be strong right now. It's okay to rest and recover.",
+            "Your quiet sadness deserves compassion. Treat yourself as you'd treat a dear friend.",
+            "Even flowers need the rain. You're growing through what you're going through.",
+            "This low energy is your body saying 'rest.' Listen to it. Honor it.",
+            "You're not alone in this feeling. Reach out when ready—people care about you.",
+            "Healing isn't linear. Some days you just need to survive, and that's enough."
+          ]
+        },
+
+        // Q4: Positive Valence + Low Arousal (Calm, Peaceful, Content)
+        q4: {
+          category: "Peaceful & Centered",
+          thoughts: [
+            "This calm you feel is profound. You're exactly where you need to be.",
+            "In this peaceful moment, you have perfect clarity. Trust your inner wisdom.",
+            "Your serenity is strength. Calmness is not weakness—it's mastery.",
+            "You're grounded and centered. This quiet confidence is your foundation.",
+            "Peace like this is a gift. Savor it, breathe it in, let it restore you.",
+            "Your calm energy is magnetic. You attract harmony when you embody it.",
+            "In this tranquil state, all answers become clear. Listen to your intuition.",
+            "This contentment is beautiful. You've found balance, and it shows.",
+            "Your peaceful presence is a refuge for yourself and others. Stay here awhile.",
+            "Stillness is power. In this calm, you're recharging for whatever comes next."
+          ]
+        }
+      },
+
+      // Traditional emotion-based thoughts (fallback/supplementary)
+      emotions: {
+      happy: {
+        category: "Uplifting",
+        thoughts: [
+          "Your joy is contagious! Keep spreading those positive vibes to everyone around you.",
+          "Happiness looks beautiful on you. Embrace this moment and let it fuel your next adventure.",
+          "You're radiating pure positivity! This is your energy—own it and share it with the world.",
+          "Every smile you share creates a ripple of happiness. You're making the world brighter!",
+          "Your happiness is a reflection of your inner strength. Celebrate yourself today!",
+          "This moment of joy is yours to treasure. Let it remind you of all the good in your life.",
+          "You deserve all the happiness you're feeling right now. Keep choosing joy!",
+          "Your positive energy is a gift to yourself and others. Keep shining!",
+          "Happiness is your natural state. You're exactly where you need to be.",
+          "The universe is celebrating with you! Your joy is well-deserved.",
+          "You're proof that good things happen to good people. Keep being amazing!",
+          "Your smile is powerful—it can change someone's entire day. Never underestimate it.",
+          "This happiness you feel? It's just the beginning of more beautiful moments to come.",
+          "You're creating your own sunshine, and it's absolutely magnificent!",
+          "The joy in your heart is a testament to your resilient spirit. Keep going!"
+        ]
+      },
+      sad: {
+        category: "Comforting",
+        thoughts: [
+          "It's okay to feel sad. Your emotions are valid, and this feeling is temporary.",
+          "Even the darkest nights end with sunrise. Your light is still there, just resting.",
+          "You're stronger than you know. This moment doesn't define you—your resilience does.",
+          "Sadness is not weakness; it's proof that you've loved deeply and lived fully.",
+          "Be gentle with yourself. Healing isn't linear, and you're doing better than you think.",
+          "Your feelings matter. Take the time you need—there's no rush to feel better.",
+          "Remember: storms don't last forever, but the lessons they teach us do.",
+          "You've survived 100% of your worst days. You can get through this one too.",
+          "It's okay to not be okay. Give yourself permission to feel and heal.",
+          "Your story isn't over yet. This is just a chapter, not the ending.",
+          "Even flowers need rain to grow. You're growing through what you're going through.",
+          "You are not alone in this feeling. Reach out—people care about you more than you know.",
+          "This sadness is temporary, but your strength is permanent. Hold on.",
+          "Be patient with yourself. Healing takes time, and you're worth the wait.",
+          "Your emotions are messengers, not masters. Listen to them, but don't let them control you.",
+          "Tomorrow is a new day with new possibilities. Rest now, rise stronger later."
+        ]
+      },
+      angry: {
+        category: "Calming",
+        thoughts: [
+          "Take a deep breath. Your anger is valid, but your peace is more valuable.",
+          "Pause. This feeling is temporary, but your response could have lasting effects.",
+          "Channel this energy into something productive. Your passion can create positive change.",
+          "It's okay to be angry, but remember: you're in control of how you respond.",
+          "Breathe in calm, breathe out tension. You have the power to choose peace.",
+          "This moment will pass. Respond with wisdom, not impulse.",
+          "Your anger is showing you what matters to you. Listen to it, then let it go.",
+          "You're stronger than this feeling. Take a step back and see the bigger picture.",
+          "Anger is a signal, not a solution. What is it trying to tell you?",
+          "Release what you can't control. Focus your energy on what you can change.",
+          "Every breath is a chance to reset. You're capable of calm.",
+          "This frustration is temporary. Your inner peace is permanent—return to it.",
+          "Transform this fire into fuel for positive change. You have that power.",
+          "Step back, breathe deep, and remember: you choose your reactions.",
+          "Anger is just energy. Redirect it toward something that serves you better."
+        ]
+      },
+      surprised: {
+        category: "Exciting",
+        thoughts: [
+          "Life is full of beautiful surprises! Embrace the unexpected with an open heart.",
+          "Wow! This is your moment to experience something new and wonderful.",
+          "Surprises remind us that life is full of magic. Stay curious!",
+          "Your world just expanded! Welcome this new experience with excitement.",
+          "The best stories start with unexpected moments. This could be yours!",
+          "Life keeps things interesting! Ride this wave of surprise with joy.",
+          "Unexpected moments create the best memories. Make this one count!",
+          "Your openness to surprise makes life an adventure. Keep exploring!",
+          "This is what makes life exciting! Embrace the unknown.",
+          "Surprises are life's way of keeping you present. Enjoy this moment!",
+          "Every surprise is an opportunity in disguise. What will you do with it?",
+          "Your willingness to be amazed makes you young at heart. Never lose that!",
+          "Life just handed you a plot twist. Time to write an amazing next chapter!",
+          "This unexpected moment is a gift. Unwrap it with gratitude and curiosity.",
+          "The universe loves to surprise those who pay attention. You're living fully!"
+        ]
+      },
+      neutral: {
+        category: "Mindful",
+        thoughts: [
+          "Calm is a superpower. You're centered and ready for whatever comes next.",
+          "In this peaceful moment, you have clarity. Trust your inner wisdom.",
+          "Balance is beautiful. You're exactly where you need to be right now.",
+          "This quiet moment is yours. Use it to reconnect with yourself.",
+          "Neutrality allows you to see clearly. What does your intuition say?",
+          "Peace isn't passive—it's a powerful state of readiness. You're prepared.",
+          "In the stillness, you find yourself. Welcome this moment of clarity.",
+          "Your calm energy is magnetic. You attract what you radiate.",
+          "This is your reset button. Breathe, center, and move forward with intention.",
+          "Balance is not something you find—it's something you create. You're doing it.",
+          "Quiet moments are where the best ideas are born. Stay present.",
+          "Your steady energy is your strength. Stay grounded, stay powerful.",
+          "In this neutral space, all possibilities exist. What will you choose?",
+          "Calmness is not the absence of energy—it's energy under control.",
+          "You're like still water: calm on the surface, powerful beneath."
+        ]
+      }
+      }
+    };
+
+    // Neon Cube Background
+    (function initNeonCube() {
+      try {
+        console.log('[3D Background] Initializing...');
+        const container = document.getElementById('neon-cube-bg');
+        if (!container) {
+          console.error('[3D Background] Container not found!');
+          return;
+        }
+        const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x07080d);
+      scene.fog = new THREE.Fog(0x07080d, 10, 20);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      container.appendChild(renderer.domElement);
+
+      const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 0, 5.4);
+
+      // Lights
+      scene.add(new THREE.AmbientLight(0x3f5fff, 0.22));
+      const rim = new THREE.DirectionalLight(0x6aa2ff, 0.55);
+      rim.position.set(-3, 2, 4);
+      scene.add(rim);
+
+      // Shader Neon Cube (reduced segments for performance)
+      const cubeGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5, 64, 64, 64);
+      const neonMat = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: {
+          u_time: { value: 0 },
+          u_base: { value: new THREE.Color(0x0b0e17) },
+          u_neonA: { value: new THREE.Color(0x7b3fff) },
+          u_neonB: { value: new THREE.Color(0x00d9ff) },
+          u_intensity: { value: 1.45 },
+          u_gridScale: { value: 6.0 },
+        },
+        vertexShader: `
+          varying vec3 vPos; varying vec3 vN;
+          void main(){ vPos = position; vN = normalMatrix * normal; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }
+        `,
+        fragmentShader: `
+          precision highp float; varying vec3 vPos; varying vec3 vN;
+          uniform vec3 u_base, u_neonA, u_neonB; uniform float u_time, u_intensity, u_gridScale;
+          float grid(float x, float s){ float a=abs(fract(x*s-0.5)-0.5)/fwidth(x*s); return 1.0 - smoothstep(0.0,1.0,a); }
+          void main(){
+            float g = max(grid(vPos.x,u_gridScale), max(grid(vPos.y,u_gridScale), grid(vPos.z,u_gridScale)));
+            float r = length(vPos.yz);
+            float core = smoothstep(0.68, 0.08, 1.0 - r) * (0.55 + 0.45*sin(u_time*2.6 + r*12.0));
+            vec3 neon = mix(u_neonA, u_neonB, 0.5 + 0.5*sin(u_time*0.8));
+            float fres = pow(1.0 - max(dot(normalize(vN), vec3(0.0,0.0,1.0)), 0.0), 2.0) * 0.25;
+            vec3 col = u_base + neon * (g*1.0*u_intensity + core*1.35 + fres);
+            gl_FragColor = vec4(col, clamp(g+core+0.25, 0.25, 1.0));
+          }
+        `,
+      });
+      const cube = new THREE.Mesh(cubeGeo, neonMat);
+      scene.add(cube);
+
+      // Wireframe edges
+      const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.5, 1.5, 1.5));
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0x9de3ff, transparent: true, opacity: 0.35 });
+      const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+      scene.add(edges);
+
+      // Smaller background cubes with variety (spread across page, different sizes and colors)
+      const smallCubes = [];
+      const cubeConfigs = [
+        // Close cubes (larger, more visible)
+        { x: -4, y: 2, z: -2, scale: 0.7, color: 0x7b3fff, emissive: 0x00d9ff, opacity: 0.4, blur: 0 },
+        { x: 5, y: -2.5, z: -2.5, scale: 0.8, color: 0x00d9ff, emissive: 0x7b3fff, opacity: 0.35, blur: 0 },
+        { x: -3.5, y: -3, z: -3, scale: 0.6, color: 0xa78bfa, emissive: 0x00d9ff, opacity: 0.4, blur: 0.5 },
+
+        // Mid-distance cubes
+        { x: 6, y: 3.5, z: -5, scale: 0.85, color: 0x7b3fff, emissive: 0x9de3ff, opacity: 0.3, blur: 1 },
+        { x: -5.5, y: -1, z: -4.5, scale: 0.65, color: 0x00d9ff, emissive: 0xa78bfa, opacity: 0.35, blur: 1 },
+        { x: 3, y: 4, z: -6, scale: 0.55, color: 0x9de3ff, emissive: 0x7b3fff, opacity: 0.3, blur: 1.5 },
+        { x: -6, y: 2.5, z: -5.5, scale: 0.7, color: 0xa78bfa, emissive: 0x00d9ff, opacity: 0.25, blur: 1.5 },
+
+        // Far cubes (smaller, more blurred for depth)
+        { x: 7, y: -3.5, z: -8, scale: 0.5, color: 0x7b3fff, emissive: 0x00d9ff, opacity: 0.2, blur: 2 },
+        { x: -7.5, y: 4, z: -9, scale: 0.6, color: 0x00d9ff, emissive: 0x7b3fff, opacity: 0.18, blur: 2.5 },
+        { x: 4, y: -4.5, z: -10, scale: 0.45, color: 0x9de3ff, emissive: 0xa78bfa, opacity: 0.15, blur: 3 },
+        { x: -4.5, y: 5, z: -11, scale: 0.55, color: 0xa78bfa, emissive: 0x9de3ff, opacity: 0.15, blur: 3 },
+        { x: 8, y: 1, z: -12, scale: 0.5, color: 0x7b3fff, emissive: 0x00d9ff, opacity: 0.12, blur: 3.5 },
+      ];
+
+      cubeConfigs.forEach(config => {
+        const smallGeo = new THREE.BoxGeometry(config.scale, config.scale, config.scale);
+        const smallMatBasic = new THREE.MeshPhongMaterial({
+          color: config.color,
+          transparent: true,
+          opacity: config.opacity,
+          emissive: config.emissive,
+          emissiveIntensity: 0.6
+        });
+        const smallCube = new THREE.Mesh(smallGeo, smallMatBasic);
+        smallCube.position.set(config.x, config.y, config.z);
+
+        // Random rotation speeds (slower for distant cubes)
+        const distanceFactor = Math.abs(config.z) / 12;
+        smallCube.userData = {
+          speedX: (Math.random() * 0.2 + 0.15) * (1 - distanceFactor * 0.5),
+          speedY: (Math.random() * 0.3 + 0.2) * (1 - distanceFactor * 0.5),
+          speedZ: (Math.random() * 0.25 + 0.1) * (1 - distanceFactor * 0.5),
+          floatOffset: Math.random() * Math.PI * 2
+        };
+
+        scene.add(smallCube);
+        smallCubes.push(smallCube);
+
+        // Add wireframe to small cubes with varying opacity
+        const smallEdge = new THREE.EdgesGeometry(smallGeo);
+        const edgeOpacity = Math.max(0.2, config.opacity);
+        const smallEdgeMat = new THREE.LineBasicMaterial({
+          color: 0x9de3ff,
+          transparent: true,
+          opacity: edgeOpacity
+        });
+        const smallEdges = new THREE.LineSegments(smallEdge, smallEdgeMat);
+        smallCube.add(smallEdges);
+      });
+
+      // Micro particle orbit (reduced count for performance)
+      const orbitGeo = new THREE.BufferGeometry();
+      const count = 120;
+      const orbitPositions = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const r = 2.6 + (Math.random() - 0.5) * 0.1;
+        orbitPositions[i * 3] = Math.cos(a) * r;
+        orbitPositions[i * 3 + 1] = (Math.random() - 0.5) * 0.35;
+        orbitPositions[i * 3 + 2] = Math.sin(a) * r;
+      }
+      orbitGeo.setAttribute('position', new THREE.BufferAttribute(orbitPositions, 3));
+      const orbitMat = new THREE.PointsMaterial({ color: 0x9de3ff, size: 0.02, transparent: true, opacity: 0.85 });
+      const orbit = new THREE.Points(orbitGeo, orbitMat);
+      scene.add(orbit);
+
+      // Minimal starfield
+      const starGeo = new THREE.BufferGeometry();
+      const starCount = 300;
+      const starPos = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount; i++) {
+        const r = 10 + Math.random() * 12;
+        const th = Math.random() * Math.PI * 2;
+        const ph = Math.acos(Math.random() * 2 - 1);
+        starPos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+        starPos[i * 3 + 1] = r * Math.sin(ph) * Math.sin(th);
+        starPos[i * 3 + 2] = r * Math.cos(ph);
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      const starMat = new THREE.PointsMaterial({ color: 0x5fb6ff, size: 0.018, transparent: true, opacity: 0.55 });
+      const stars = new THREE.Points(starGeo, starMat);
+      scene.add(stars);
+
+      // Bloom post-processing (optional, fallback if not available)
+      let composer;
+      let useComposer = false;
+
+      try {
+        if (THREE.EffectComposer && THREE.RenderPass && THREE.UnrealBloomPass) {
+          composer = new THREE.EffectComposer(renderer);
+          composer.addPass(new THREE.RenderPass(scene, camera));
+          const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.35, 0.45, 0.82);
+          bloom.threshold = 0.16;
+          bloom.strength = 1.38;
+          bloom.radius = 0.85;
+          composer.addPass(bloom);
+          useComposer = true;
+          console.log('[3D] Bloom enabled');
+        }
+      } catch(e) {
+        console.log('[3D] Bloom not available, using standard rendering');
+      }
+
+      // Animation
+      const clock = new THREE.Clock();
+      const spinX = 2.8, spinY = 3.6;
+      const floatAmp = 0.16, floatHz = 0.9;
+
+      let isHighPerformance = true; // Will be set to false when analyzer starts
+      window.setCubePerformanceMode = (highPerf) => { isHighPerformance = highPerf; };
+
+      function animate() {
+        const dt = clock.getDelta();
+        const t = clock.elapsedTime;
+
+        neonMat.uniforms.u_time.value = t;
+
+        // Main cube - reduce speed when low performance mode
+        const speedMult = isHighPerformance ? 1.0 : 0.5;
+        cube.rotation.x += spinX * dt * speedMult;
+        cube.rotation.y += spinY * dt * speedMult;
+        edges.rotation.copy(cube.rotation);
+        cube.position.y = Math.sin(t * Math.PI * 2 * floatHz) * floatAmp;
+        edges.position.copy(cube.position);
+
+        // Animate smaller background cubes (slow rotation + floating motion)
+        smallCubes.forEach(smallCube => {
+          smallCube.rotation.x += smallCube.userData.speedX * dt;
+          smallCube.rotation.y += smallCube.userData.speedY * dt;
+          smallCube.rotation.z += smallCube.userData.speedZ * dt;
+
+          // Add subtle floating motion
+          const floatSpeed = 0.3;
+          const floatAmount = 0.1;
+          smallCube.position.y += Math.sin(t * floatSpeed + smallCube.userData.floatOffset) * floatAmount * dt;
+        });
+
+        orbit.rotation.y = t * 0.55 * speedMult;
+        stars.rotation.y = t * 0.02;
+
+        // Render with bloom if available, otherwise standard
+        if (useComposer && composer) {
+          composer.render();
+        } else {
+          renderer.render(scene, camera);
+        }
+
+        requestAnimationFrame(animate);
+      }
+      animate();
+
+      // Resize handler
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        if (useComposer && composer) {
+          composer.setSize(window.innerWidth, window.innerHeight);
+        }
+      });
+
+      console.log('[3D Background] ✅ Initialized successfully');
+    } catch (error) {
+      console.error('[3D Background] Error:', error);
+    }
+    })();
+
+    // MorphCast Service
+    class MorphCastService {
+      constructor() {
+        this.isInitialized = false;
+        this.isAnalyzing = false;
+        this.videoElement = null;
+        this.stream = null;
+        this.currentEmotions = {
+          happy: 0, sad: 0, angry: 0, surprised: 0, neutral: 0
+        };
+        this.dominantEmotion = 'neutral';
+        this.emotionHistory = [];
+        this.historySize = 10;
+        this.onEmotionUpdate = null;
+
+        window.addEventListener('CY_FACE_EMOTION_RESULT', (event) => {
+          this.handleMorphCastEmotion(event.detail);
+        });
+      }
+
+      async initialize(videoElement) {
+        this.videoElement = videoElement;
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          audio: false
+        });
+        this.videoElement.srcObject = this.stream;
+        await new Promise((resolve) => {
+          this.videoElement.onloadedmetadata = resolve;
+        });
+        this.isInitialized = true;
+        console.log('[MorphCast] Camera initialized');
+        return true;
+      }
+
+      handleMorphCastEmotion(event) {
+        if (!event.output || !event.output.emotion) return;
+        const emotions = event.output.emotion;
+        this.currentEmotions.happy = (emotions.Happy || 0) * 100;
+        this.currentEmotions.sad = (emotions.Sad || 0) * 100;
+        this.currentEmotions.angry = (emotions.Angry || 0) * 100;
+        this.currentEmotions.surprised = (emotions.Surprise || 0) * 100;
+        this.currentEmotions.neutral = (emotions.Neutral || 0) * 100;
+
+      }
+
+      async startAnalysis() {
+        this.isAnalyzing = true;
+        this.analysisLoop();
+      }
+
+      analysisLoop() {
+        if (!this.isAnalyzing) return;
+        this.emotionHistory.push({ ...this.currentEmotions });
+        if (this.emotionHistory.length > this.historySize) {
+          this.emotionHistory.shift();
+        }
+        this.updateDominantEmotion();
+        if (this.onEmotionUpdate) {
+          this.onEmotionUpdate({
+            emotions: { ...this.currentEmotions },
+            dominant: this.dominantEmotion
+          });
+        }
+        setTimeout(() => this.analysisLoop(), 100);
+      }
+
+      updateDominantEmotion() {
+        let maxEmotion = 'neutral';
+        let maxValue = 0;
+        for (const [emotion, value] of Object.entries(this.currentEmotions)) {
+          if (value > maxValue) {
+            maxValue = value;
+            maxEmotion = emotion;
+          }
+        }
+        if (maxValue > 20) {
+          this.dominantEmotion = maxEmotion;
+        } else {
+          this.dominantEmotion = 'neutral';
+        }
+      }
+
+      cleanup() {
+        this.isAnalyzing = false;
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => track.stop());
+        }
+      }
+    }
+
+    // Controller
+    class MoodMusicController {
+      constructor() {
+        this.morphcastService = new MorphCastService();
+        this.currentMusicMode = 'match';
+        this.lastPlayedEmotion = null;
+        this.init();
+      }
+
+      init() {
+        document.getElementById('start-analysis-btn').addEventListener('click', () => this.handleStartAnalysis());
+        document.getElementById('capture-mood-btn').addEventListener('click', () => this.handleCaptureMood());
+        document.getElementById('restart-analysis-btn').addEventListener('click', () => this.handleRestart());
+
+        const switchMusicMode = (mode) => {
+          this.currentMusicMode = mode;
+          document.querySelectorAll('.mood-mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.moodMode === mode);
+          });
+          if (this.lastPlayedEmotion) {
+            this.updateMusicPlayer(this.lastPlayedEmotion);
+          }
+        };
+
+        document.getElementById('match-mode-btn').addEventListener('click', () => switchMusicMode('match'));
+        document.getElementById('boost-mode-btn').addEventListener('click', () => switchMusicMode('boost'));
+        document.getElementById('energy-mode-btn').addEventListener('click', () => switchMusicMode('energy'));
+
+        // Preload a neutral playlist so the embed is interactive immediately
+        this.lastPlayedEmotion = 'neutral';
+        this.updateMusicPlayer('neutral');
+      }
+
+      async handleStartAnalysis() {
+        try {
+          const cameraStatus = document.getElementById('camera-status').querySelector('span');
+          cameraStatus.textContent = 'Initializing camera...';
+
+          await this.morphcastService.initialize(document.getElementById('camera-preview'));
+
+          cameraStatus.textContent = 'Loading MorphCast AI...';
+
+          // Wait for MorphCast
+          const morphCastReady = new Promise((resolve) => {
+            if (window.morphCastStart) {
+              resolve();
+            } else {
+              window.addEventListener('MORPHCAST_READY', resolve, { once: true });
+            }
+          });
+
+          await morphCastReady;
+
+          if (window.morphCastStart) {
+            await window.morphCastStart();
+            console.log('[Mood Music] ✅ MorphCast started!');
+            cameraStatus.textContent = 'Camera active - Real emotion detection';
+          }
+
+          this.morphcastService.onEmotionUpdate = (data) => this.updateEmotionUI(data);
+          await this.morphcastService.startAnalysis();
+
+          // Reduce cube performance to prevent lag
+          if (window.setCubePerformanceMode) {
+            window.setCubePerformanceMode(false);
+          }
+
+          // Show emotion section and capture button
+          document.getElementById('start-analysis-btn').style.display = 'none';
+          document.getElementById('capture-mood-btn').style.display = 'flex';
+          document.getElementById('emotion-section').style.display = 'block';
+
+          // Music section stays hidden until user captures mood
+
+        } catch (error) {
+          alert(`Error: ${error.message}`);
+        }
+      }
+
+      async handleCaptureMood() {
+        // Stop camera and analysis
+        if (window.morphCastStop) await window.morphCastStop();
+        this.morphcastService.cleanup();
+
+        const cameraStatus = document.getElementById('camera-status').querySelector('span');
+        cameraStatus.textContent = `Mood locked: ${this.lastPlayedEmotion || 'neutral'}`;
+
+        // Hide capture button, show restart button
+        document.getElementById('capture-mood-btn').style.display = 'none';
+        document.getElementById('restart-analysis-btn').style.display = 'flex';
+
+        // Show music section and start playing
+        document.getElementById('music-section').style.display = 'block';
+
+        // Update music player with locked emotion
+        const lockedEmotion = this.lastPlayedEmotion || 'neutral';
+        this.updateMusicPlayer(lockedEmotion);
+
+        // Generate and show mood thought tied to captured emotion
+        if (thoughtsService) {
+          thoughtsService.generateThought(lockedEmotion);
+        }
+
+        console.log(`[Mood Music] Captured emotion: ${lockedEmotion}`);
+      }
+
+      async handleRestart() {
+        // Restore cube performance
+        if (window.setCubePerformanceMode) {
+          window.setCubePerformanceMode(true);
+        }
+
+        // Reset UI
+        document.getElementById('restart-analysis-btn').style.display = 'none';
+        document.getElementById('start-analysis-btn').style.display = 'flex';
+        document.getElementById('emotion-section').style.display = 'none';
+        document.getElementById('music-section').style.display = 'none';
+        document.getElementById('thoughts-section').style.display = 'none';
+
+        const cameraStatus = document.getElementById('camera-status').querySelector('span');
+        cameraStatus.textContent = 'Camera Ready';
+
+        // Reset emotion bars
+        ['happy', 'sad', 'angry', 'surprised', 'neutral'].forEach(emotion => {
+          document.getElementById(`emotion-${emotion}`).style.width = '0%';
+          document.getElementById(`value-${emotion}`).textContent = '0%';
+        });
+        document.getElementById('dominant-emotion').textContent = 'Neutral';
+
+        console.log('[Mood Music] Restarted - ready for new analysis');
+      }
+
+      updateEmotionUI(data) {
+        ['happy', 'sad', 'angry', 'surprised', 'neutral'].forEach(emotion => {
+          const value = Math.round(data.emotions[emotion] || 0);
+          document.getElementById(`emotion-${emotion}`).style.width = `${value}%`;
+          document.getElementById(`value-${emotion}`).textContent = `${value}%`;
+        });
+        const dominantEmotion = data.dominant || 'neutral';
+        document.getElementById('dominant-emotion').textContent = dominantEmotion;
+
+        // Store current emotional state
+        this.lastPlayedEmotion = dominantEmotion;
+
+        // Music only plays when user clicks "Capture This Mood"
+      }
+
+      updateMusicPlayer(emotion) {
+        const modePlaylists = SPOTIFY_CONFIG.moodPlaylists[this.currentMusicMode] || {};
+        const playlistInfo = modePlaylists[emotion] || modePlaylists.neutral || Object.values(modePlaylists)[0];
+
+        if (!playlistInfo) {
+          console.warn('[Mood Music] No playlist found for current mode.');
+          return;
+        }
+
+        document.getElementById('spotify-player').src =
+          `https://open.spotify.com/embed/playlist/${playlistInfo.id}?utm_source=generator&theme=0`;
+        document.getElementById('current-playlist-mood').innerHTML = `
+          <strong>${playlistInfo.name}</strong><br>
+          <span style="font-size: 12px; opacity: 0.8;">${playlistInfo.description}</span>
+        `;
+
+        console.log(`[Mood Music] Playing ${emotion} playlist in ${this.currentMusicMode} mode`);
+      }
+    }
+
+    class ThoughtsService {
+      constructor() {
+        this.currentEmotion = 'neutral';
+        this.currentThought = '';
+        this.usedThoughts = {};
+        this.savedThoughts = JSON.parse(localStorage.getItem('savedThoughts') || '[]');
+        this.init();
+      }
+
+      init() {
+        // Event listeners
+        document.getElementById('new-thought-btn').addEventListener('click', () => this.generateNewThought());
+        document.getElementById('copy-thought-btn').addEventListener('click', () => this.copyThought());
+        document.getElementById('save-thought-btn').addEventListener('click', () => this.saveThought());
+
+        this.displaySavedThoughts();
+      }
+
+      generateThought(emotion = 'neutral') {
+        const emotionKey = THOUGHTS_DATABASE.emotions[emotion] ? emotion : 'neutral';
+        this.currentEmotion = emotionKey;
+
+        const thoughtSelection = THOUGHTS_DATABASE.emotions[emotionKey] || THOUGHTS_DATABASE.emotions.neutral;
+        const thoughts = thoughtSelection.thoughts;
+
+        if (!this.usedThoughts[emotionKey]) {
+          this.usedThoughts[emotionKey] = new Set();
+        }
+        const usedSet = this.usedThoughts[emotionKey];
+
+        // Reset used thoughts if we've used them all
+        if (usedSet.size >= thoughts.length) {
+          usedSet.clear();
+        }
+
+        // Find a thought we haven't shown yet
+        let thought;
+        let availableThoughts = thoughts.filter(t => !usedSet.has(t));
+        if (availableThoughts.length === 0) {
+          // If all used, pick a random one
+          thought = thoughts[Math.floor(Math.random() * thoughts.length)];
+        } else {
+          thought = availableThoughts[Math.floor(Math.random() * availableThoughts.length)];
+        }
+
+        usedSet.add(thought);
+        this.currentThought = thought;
+
+        // Update UI
+        document.getElementById('thought-text').textContent = thought;
+        document.getElementById('thought-category').textContent = thoughtSelection.category;
+        document.getElementById('thoughts-section').style.display = 'block';
+
+        return thought;
+      }
+
+      generateNewThought() {
+        this.generateThought(this.currentEmotion);
+      }
+
+      copyThought() {
+        if (!this.currentThought) return;
+
+        navigator.clipboard.writeText(this.currentThought).then(() => {
+          const btn = document.getElementById('copy-thought-btn');
+          const originalText = btn.innerHTML;
+          btn.innerHTML = '✓ Copied!';
+          btn.style.background = 'rgba(16, 185, 129, 0.2)';
+          btn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = '';
+            btn.style.borderColor = '';
+          }, 2000);
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+        });
+      }
+
+      saveThought() {
+        if (!this.currentThought) return;
+
+        if (!this.savedThoughts.includes(this.currentThought)) {
+          this.savedThoughts.unshift(this.currentThought);
+          // Keep only last 20 saved thoughts
+          if (this.savedThoughts.length > 20) {
+            this.savedThoughts = this.savedThoughts.slice(0, 20);
+          }
+          localStorage.setItem('savedThoughts', JSON.stringify(this.savedThoughts));
+          this.displaySavedThoughts();
+
+          const btn = document.getElementById('save-thought-btn');
+          const originalText = btn.innerHTML;
+          btn.innerHTML = '✓ Saved!';
+          btn.style.background = 'rgba(251, 191, 36, 0.2)';
+          btn.style.borderColor = 'rgba(251, 191, 36, 0.4)';
+
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = '';
+            btn.style.borderColor = '';
+          }, 2000);
+        }
+      }
+
+      displaySavedThoughts() {
+        const container = document.getElementById('saved-thoughts-container');
+        const list = document.getElementById('saved-thoughts-list');
+
+        if (this.savedThoughts.length === 0) {
+          container.style.display = 'none';
+          return;
+        }
+
+        container.style.display = 'block';
+        list.innerHTML = this.savedThoughts.map((thought, index) => `
+          <div style="padding: 12px; background: rgba(255, 255, 255, 0.04); border-radius: 10px; font-size: 13px; color: rgba(255, 255, 255, 0.8); border: 1px solid rgba(157, 227, 255, 0.1); position: relative;">
+            <button onclick="thoughtsService.deleteSavedThought(${index})" style="position: absolute; top: 8px; right: 8px; background: rgba(255, 63, 109, 0.2); border: 1px solid rgba(255, 63, 109, 0.3); border-radius: 6px; color: #ff3b6d; cursor: pointer; padding: 4px 8px; font-size: 11px;">✕</button>
+            "${thought}"
+          </div>
+        `).join('');
+      }
+
+      deleteSavedThought(index) {
+        this.savedThoughts.splice(index, 1);
+        localStorage.setItem('savedThoughts', JSON.stringify(this.savedThoughts));
+        this.displaySavedThoughts();
+      }
+    }
+
+    // Accessibility Service
+    class AccessibilityService {
+      constructor() {
+        this.highContrast = false;
+        this.reduceMotion = false;
+        this.largeText = false;
+        this.synthesis = window.speechSynthesis;
+        this.init();
+      }
+
+      init() {
+        // Load saved preferences
+        this.highContrast = localStorage.getItem('highContrast') === 'true';
+        this.reduceMotion = localStorage.getItem('reduceMotion') === 'true';
+        this.largeText = localStorage.getItem('largeText') === 'true';
+
+        // Apply saved preferences
+        if (this.highContrast) this.toggleHighContrast();
+        if (this.reduceMotion) this.toggleReduceMotion();
+        if (this.largeText) this.toggleLargeText();
+
+        // Event listeners
+        document.getElementById('high-contrast-btn').addEventListener('click', () => this.toggleHighContrast());
+        document.getElementById('reduce-motion-btn').addEventListener('click', () => this.toggleReduceMotion());
+        document.getElementById('large-text-btn').addEventListener('click', () => this.toggleLargeText());
+        document.getElementById('read-aloud-btn').addEventListener('click', () => this.readThoughtAloud());
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+          // Alt + H: High Contrast
+          if (e.altKey && e.key === 'h') {
+            e.preventDefault();
+            this.toggleHighContrast();
+          }
+          // Alt + M: Reduce Motion
+          if (e.altKey && e.key === 'm') {
+            e.preventDefault();
+            this.toggleReduceMotion();
+          }
+          // Alt + T: Large Text
+          if (e.altKey && e.key === 't') {
+            e.preventDefault();
+            this.toggleLargeText();
+          }
+          // Alt + R: Read Aloud
+          if (e.altKey && e.key === 'r') {
+            e.preventDefault();
+            this.readThoughtAloud();
+          }
+        });
+      }
+
+      toggleHighContrast() {
+        this.highContrast = !this.highContrast;
+        document.body.classList.toggle('high-contrast', this.highContrast);
+        document.getElementById('high-contrast-btn').classList.toggle('active', this.highContrast);
+        localStorage.setItem('highContrast', this.highContrast);
+      }
+
+      toggleReduceMotion() {
+        this.reduceMotion = !this.reduceMotion;
+        document.body.classList.toggle('reduce-motion', this.reduceMotion);
+        document.getElementById('reduce-motion-btn').classList.toggle('active', this.reduceMotion);
+        localStorage.setItem('reduceMotion', this.reduceMotion);
+
+        // Also reduce cube performance
+        if (window.setCubePerformanceMode) {
+          window.setCubePerformanceMode(!this.reduceMotion);
+        }
+      }
+
+      toggleLargeText() {
+        this.largeText = !this.largeText;
+        document.body.classList.toggle('large-text', this.largeText);
+        document.getElementById('large-text-btn').classList.toggle('active', this.largeText);
+        localStorage.setItem('largeText', this.largeText);
+      }
+
+      readThoughtAloud() {
+        const thoughtText = document.getElementById('thought-text').textContent;
+        if (!thoughtText || thoughtText === 'Your personalized thought will appear here...') return;
+
+        // Cancel any ongoing speech
+        this.synthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(thoughtText);
+        utterance.rate = 0.9; // Slightly slower for clarity
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        // Visual feedback
+        const btn = document.getElementById('read-aloud-btn');
+        btn.style.background = 'rgba(0, 217, 255, 0.3)';
+        btn.style.borderColor = 'rgba(0, 217, 255, 0.5)';
+
+        utterance.onend = () => {
+          btn.style.background = '';
+          btn.style.borderColor = '';
+        };
+
+        this.synthesis.speak(utterance);
+      }
+    }
+
+    // Initialize services
+    let thoughtsService;
+    let accessibilityService;
+
+    // Initialize MorphCast
+    (function() {
+      const initMorphCast = () => {
+        if (typeof CY === 'undefined' || !CY.loader) {
+          setTimeout(initMorphCast, 100);
+          return;
+        }
+        console.log('[MorphCast] Initializing SDK...');
+        CY.loader()
+          .licenseKey("apfbff9db84145a06a047cf6d1915506638bde2ae52ac7")
+          .addModule(CY.modules().FACE_EMOTION.name, {smoothness: 0.40})
+          .addModule(CY.modules().FACE_DETECTOR.name, {maxInputFrameSize: 320, smoothness: 0.83})
+          .load()
+          .then(({ start, stop }) => {
+            console.log('[MorphCast] ✅ SDK ready!');
+            window.morphCastStart = start;
+            window.morphCastStop = stop;
+            window.dispatchEvent(new CustomEvent('MORPHCAST_READY', { detail: { start, stop } }));
+          })
+          .catch((error) => console.error('[MorphCast] Error:', error));
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMorphCast);
+      } else {
+        initMorphCast();
+      }
+    })();
+
+    // Start controller and services
+    document.addEventListener('DOMContentLoaded', () => {
+      new MoodMusicController();
+      thoughtsService = new ThoughtsService();
+      accessibilityService = new AccessibilityService();
+      console.log('[App] ✅ All services initialized!');
+    });
+  </script>
+</body>
+</html>

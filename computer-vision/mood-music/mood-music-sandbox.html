@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://ai-sdk.morphcast.com https://open.spotify.com; connect-src *; img-src * data:; style-src 'self' 'unsafe-inline'; frame-src https://open.spotify.com;">
+  <title>Mood Music - MindMirror</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .mood-music-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      height: 100vh;
+      padding: 24px;
+      background: var(--primary-bg);
+    }
+
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .camera-section {
+      flex: 1;
+    }
+
+    .camera-preview-wrapper {
+      height: 100%;
+      min-height: 400px;
+    }
+
+    #camera-preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .music-section {
+      height: 300px;
+    }
+
+    .spotify-embed-container iframe {
+      height: 380px !important;
+    }
+
+    .full-width-section {
+      grid-column: 1 / -1;
+    }
+
+    .header-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-title {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-blue), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .close-btn {
+      padding: 8px 16px;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 8px;
+      color: #ef4444;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .close-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="mood-music-container">
+    <!-- Header -->
+    <div class="header-bar full-width-section">
+      <div>
+        <div class="header-title">🎵 Mood Music</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+          AI-powered emotion detection with mood-based music
+        </div>
+      </div>
+      <button class="close-btn" id="close-btn">Close Tab</button>
+    </div>
+
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <!-- Camera Section -->
+      <div class="camera-section">
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; height: 100%;">
+          <div class="camera-preview-wrapper">
+            <video id="camera-preview" autoplay playsinline></video>
+            <canvas id="camera-canvas" style="display: none;"></canvas>
+            <div class="camera-overlay">
+              <div class="face-detection-box" id="face-box" style="display: none;"></div>
+            </div>
+          </div>
+          <div class="camera-status" id="camera-status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>Camera Ready</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="mood-mode-selector">
+        <h3 class="section-title">Music Mode</h3>
+        <div class="mode-options">
+          <button class="mood-mode-btn active" data-mood-mode="match" id="match-mode-btn">
+            <span>Match Mood</span>
+            <small>Music that matches your emotion</small>
+          </button>
+          <button class="mood-mode-btn" data-mood-mode="boost" id="boost-mode-btn">
+            <span>Boost Mood</span>
+            <small>Uplifting music to improve mood</small>
+          </button>
+          <button class="mood-mode-btn" data-mood-mode="energy" id="energy-mode-btn">
+            <span>Energy Level</span>
+            <small>Match your energy instead</small>
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="mood-actions">
+        <button id="start-analysis-btn" class="primary-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span>Start Analysis</span>
+        </button>
+        <button id="stop-analysis-btn" class="secondary-btn" style="display: none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="6" y="6" width="12" height="12"/>
+          </svg>
+          <span>Stop</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <!-- Emotion Analysis -->
+      <div class="emotion-section" id="emotion-section" style="display: none;">
+        <h3 class="section-title">Emotion Analysis</h3>
+        <div class="emotion-bars">
+          <div class="emotion-bar" data-emotion="happy">
+            <span class="emotion-label">Happy</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-happy" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-happy">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="sad">
+            <span class="emotion-label">Sad</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-sad" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-sad">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="angry">
+            <span class="emotion-label">Angry</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-angry" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-angry">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="surprised">
+            <span class="emotion-label">Surprised</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-surprised" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-surprised">0%</span>
+          </div>
+          <div class="emotion-bar" data-emotion="neutral">
+            <span class="emotion-label">Neutral</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="emotion-neutral" style="width: 0%"></div>
+            </div>
+            <span class="emotion-value" id="value-neutral">0%</span>
+          </div>
+        </div>
+        <div class="dominant-emotion">
+          <span class="dominant-label">Current Mood:</span>
+          <span class="dominant-value" id="dominant-emotion">Detecting...</span>
+        </div>
+      </div>
+
+      <!-- Music Player -->
+      <div class="music-section" id="music-section" style="display: none;">
+        <div class="current-mood-playlist">
+          <div class="playlist-header">
+            <span class="playlist-label">Playing for your mood:</span>
+            <span class="playlist-mood" id="current-playlist-mood">Happy</span>
+          </div>
+          <div class="spotify-embed-container">
+            <iframe
+              id="spotify-player"
+              style="border-radius:12px"
+              src=""
+              width="100%"
+              height="380"
+              frameBorder="0"
+              allowfullscreen=""
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy">
+            </iframe>
+          </div>
+          <div class="playlist-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <span>Music updates automatically based on your emotion</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MorphCast SDK -->
+  <script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
+
+  <!-- Our scripts -->
+  <script src="spotify-config.js"></script>
+  <script src="spotify-service.js"></script>
+  <script src="morphcast-service.js"></script>
+  <script src="mood-music.js"></script>
+
+  <!-- Initialize MorphCast SDK -->
+  <script>
+    (function() {
+      const initMorphCast = () => {
+        if (typeof CY === 'undefined' || !CY.loader) {
+          setTimeout(initMorphCast, 100);
+          return;
+        }
+
+        console.log('[MorphCast] SDK loaded, initializing...');
+
+        CY.loader()
+          .licenseKey("apfbff9db84145a06a047cf6d1915506638bde2ae52ac7")
+          .addModule(CY.modules().FACE_EMOTION.name, {smoothness: 0.40})
+          .addModule(CY.modules().FACE_DETECTOR.name, {maxInputFrameSize: 320, smoothness: 0.83})
+          .load()
+          .then(({ start, stop }) => {
+            console.log('[MorphCast] ✅ SDK ready!');
+            window.morphCastStart = start;
+            window.morphCastStop = stop;
+            window.dispatchEvent(new CustomEvent('MORPHCAST_READY', { detail: { start, stop } }));
+          })
+          .catch((error) => {
+            console.error('[MorphCast] SDK initialization failed:', error);
+          });
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMorphCast);
+      } else {
+        initMorphCast();
+      }
+    })();
+  </script>
+</body>
+</html>

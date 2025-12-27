@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photorealistic Human Face</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.98);
+            padding: 30px 40px;
+            border-radius: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            backdrop-filter: blur(20px);
+            max-width: 90%;
+        }
+
+        .emotion-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        .happy { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .sad { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .angry { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .surprised { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        .neutral { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        .disgusted { background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); }
+        .fearful { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
+        .info {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 14px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .current-emotion {
+            font-weight: 700;
+            color: #2c5364;
+            font-size: 20px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div id="loading">
+            <div>Rendering Human Face...</div>
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div class="emotion-buttons">
+            <button class="happy" onclick="changeEmotion('happy')">😊 Happy</button>
+            <button class="sad" onclick="changeEmotion('sad')">😢 Sad</button>
+            <button class="angry" onclick="changeEmotion('angry')">😠 Angry</button>
+            <button class="surprised" onclick="changeEmotion('surprised')">😲 Surprised</button>
+            <button class="neutral" onclick="changeEmotion('neutral')">😐 Neutral</button>
+            <button class="disgusted" onclick="changeEmotion('disgusted')">🤢 Disgusted</button>
+            <button class="fearful" onclick="changeEmotion('fearful')">😨 Fearful</button>
+        </div>
+        <div class="info">
+            <div class="current-emotion" id="current-emotion">Current: Neutral</div>
+            <div>Ultra-realistic 3D rendering • Real-time facial animation</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, head, eyes, mouth, face;
+        let currentEmotion = 'neutral';
+        let targetMorphs = {};
+        let currentMorphs = {};
+        let animationSpeed = 0.055;
+        let mouseX = 0, mouseY = 0;
+        let blinkTimer = 0;
+        let nextBlink = Math.random() * 3000 + 2000;
+
+        const emotions = {
+            neutral: {
+                browHeight: 0, browCurve: 0, browInner: 0,
+                eyeOpen: 0.7, eyeSquint: 0, eyeWide: 0,
+                cheekRaise: 0, noseWrinkle: 0,
+                mouthCorner: 0, mouthOpen: 0, mouthWidth: 0,
+                upperLip: 0, lowerLip: 0, jawDrop: 0,
+                lipPucker: 0, chinRaise: 0
+            },
+            happy: {
+                browHeight: 0.15, browCurve: 0.2, browInner: 0,
+                eyeOpen: 0.4, eyeSquint: 0.8, eyeWide: 0,
+                cheekRaise: 1.0, noseWrinkle: 0.2,
+                mouthCorner: 1.0, mouthOpen: 0.35, mouthWidth: 0.6,
+                upperLip: 0.5, lowerLip: 0.2, jawDrop: 0.2,
+                lipPucker: -0.15, chinRaise: 0.1
+            },
+            sad: {
+                browHeight: -0.3, browCurve: -0.3, browInner: 0.8,
+                eyeOpen: 0.5, eyeSquint: 0.3, eyeWide: 0,
+                cheekRaise: -0.2, noseWrinkle: 0,
+                mouthCorner: -0.7, mouthOpen: 0.1, mouthWidth: -0.2,
+                upperLip: -0.1, lowerLip: 0.4, jawDrop: 0,
+                lipPucker: 0.3, chinRaise: 0.5
+            },
+            angry: {
+                browHeight: -0.6, browCurve: 0.3, browInner: 0.9,
+                eyeOpen: 0.8, eyeSquint: 0.7, eyeWide: 0.2,
+                cheekRaise: 0.4, noseWrinkle: 1.0,
+                mouthCorner: -0.4, mouthOpen: 0.4, mouthWidth: 0.2,
+                upperLip: 0.6, lowerLip: 0.3, jawDrop: 0.25,
+                lipPucker: -0.3, chinRaise: 0.2
+            },
+            surprised: {
+                browHeight: 1.0, browCurve: 0.1, browInner: 0,
+                eyeOpen: 1.0, eyeSquint: -0.4, eyeWide: 1.0,
+                cheekRaise: 0.2, noseWrinkle: 0,
+                mouthCorner: 0, mouthOpen: 1.0, mouthWidth: 0.4,
+                upperLip: 0.2, lowerLip: 0.7, jawDrop: 0.8,
+                lipPucker: 0.2, chinRaise: -0.3
+            },
+            disgusted: {
+                browHeight: -0.25, browCurve: -0.2, browInner: 0.5,
+                eyeOpen: 0.5, eyeSquint: 0.6, eyeWide: 0,
+                cheekRaise: 0.7, noseWrinkle: 1.0,
+                mouthCorner: -0.8, mouthOpen: 0.2, mouthWidth: -0.3,
+                upperLip: 0.8, lowerLip: 0, jawDrop: 0.1,
+                lipPucker: -0.4, chinRaise: 0.3
+            },
+            fearful: {
+                browHeight: 0.8, browCurve: 0, browInner: 0.7,
+                eyeOpen: 0.95, eyeSquint: 0.1, eyeWide: 0.9,
+                cheekRaise: 0, noseWrinkle: 0.1,
+                mouthCorner: -0.4, mouthOpen: 0.5, mouthWidth: 0.1,
+                upperLip: 0.1, lowerLip: 0.4, jawDrop: 0.4,
+                lipPucker: 0.3, chinRaise: 0
+            }
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f2027);
+            scene.fog = new THREE.Fog(0x0f2027, 8, 20);
+            
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0.3, 6);
+            camera.lookAt(0, 0.3, 0);
+
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                alpha: true,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            setupLighting();
+            createRealisticHead();
+
+            currentMorphs = { ...emotions.neutral };
+            targetMorphs = { ...emotions.neutral };
+
+            document.getElementById('loading').style.display = 'none';
+            document.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('resize', onWindowResize);
+            
+            animate();
+        }
+
+        function setupLighting() {
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.5);
+            keyLight.position.set(5, 8, 6);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 4096;
+            keyLight.shadow.mapSize.height = 4096;
+            keyLight.shadow.camera.near = 0.5;
+            keyLight.shadow.camera.far = 50;
+            scene.add(keyLight);
+
+            const fillLight = new THREE.DirectionalLight(0xadd8e6, 0.6);
+            fillLight.position.set(-5, 3, 4);
+            scene.add(fillLight);
+
+            const rimLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            rimLight.position.set(0, 5, -6);
+            scene.add(rimLight);
+
+            const backLight = new THREE.PointLight(0x4a90e2, 0.8);
+            backLight.position.set(0, -3, -4);
+            scene.add(backLight);
+
+            const topLight = new THREE.PointLight(0xffffff, 0.4);
+            topLight.position.set(0, 10, 0);
+            scene.add(topLight);
+        }
+
+        function createSkinTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createRadialGradient(512, 400, 100, 512, 512, 600);
+            gradient.addColorStop(0, '#ffd9c8');
+            gradient.addColorStop(0.3, '#fcc9b4');
+            gradient.addColorStop(0.6, '#f5bda5');
+            gradient.addColorStop(1, '#e8a88f');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1024, 1024);
+            
+            // Add skin texture detail
+            for (let i = 0; i < 15000; i++) {
+                const x = Math.random() * 1024;
+                const y = Math.random() * 1024;
+                const size = Math.random() * 1.5;
+                const opacity = Math.random() * 0.08;
+                ctx.fillStyle = `rgba(${180 + Math.random() * 40}, ${120 + Math.random() * 30}, ${100 + Math.random() * 30}, ${opacity})`;
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            // Add subtle variations
+            for (let i = 0; i < 100; i++) {
+                const x = Math.random() * 1024;
+                const y = Math.random() * 1024;
+                const size = 10 + Math.random() * 30;
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                grad.addColorStop(0, `rgba(255, ${180 + Math.random() * 40}, ${160 + Math.random() * 40}, 0.05)`);
+                grad.addColorStop(1, 'rgba(255, 200, 180, 0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(x - size, y - size, size * 2, size * 2);
+            }
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createRealisticHead() {
+            face = new THREE.Group();
+
+            // Enhanced head geometry
+            const headGeo = new THREE.SphereGeometry(1, 128, 128);
+            const positions = headGeo.attributes.position;
+            
+            for (let i = 0; i < positions.count; i++) {
+                let x = positions.getX(i);
+                let y = positions.getY(i);
+                let z = positions.getZ(i);
+                
+                const phi = Math.acos(y);
+                const theta = Math.atan2(z, x);
+                
+                // Elongate head vertically
+                y *= 1.25;
+                
+                // Narrow top of head
+                if (y > 0.5) {
+                    const factor = 0.85 + (y - 0.5) * 0.3;
+                    x *= factor;
+                    z *= factor;
+                }
+                
+                // Create prominent cheekbones
+                if (y > -0.3 && y < 0.2 && Math.abs(x) > 0.3) {
+                    const cheekBulge = Math.pow(Math.abs(x) - 0.3, 2) * 3;
+                    z += cheekBulge * (z > 0 ? 1 : 0.3);
+                }
+                
+                // Define jawline
+                if (y < -0.4) {
+                    const jawFactor = Math.pow((y + 0.4) / -0.6, 2);
+                    x *= (1 - jawFactor * 0.35);
+                    z *= (1 + jawFactor * 0.2);
+                }
+                
+                // Flatten back of head
+                if (z < 0) {
+                    z *= 0.65;
+                }
+                
+                // Create forehead
+                if (y > 0.4 && z > 0) {
+                    z *= 1.2;
+                }
+                
+                positions.setXYZ(i, x, y, z);
+            }
+            
+            positions.needsUpdate = true;
+            headGeo.computeVertexNormals();
+
+            const skinTexture = createSkinTexture();
+            const headMaterial = new THREE.MeshStandardMaterial({
+                map: skinTexture,
+                color: 0xffd4b8,
+                roughness: 0.55,
+                metalness: 0.05,
+                envMapIntensity: 0.3
+            });
+
+            head = new THREE.Mesh(headGeo, headMaterial);
+            head.castShadow = true;
+            head.receiveShadow = true;
+            face.add(head);
+
+            // Add facial features
+            createDetailedEyes();
+            createDetailedEyebrows();
+            createDetailedNose();
+            createDetailedMouth();
+            createDetailedEars();
+            
+            scene.add(face);
+        }
+
+        function createDetailedEyes() {
+            eyes = new THREE.Group();
+            const eyePositions = [
+                { x: -0.32, y: 0.25, z: 0.88 },
+                { x: 0.32, y: 0.25, z: 0.88 }
+            ];
+
+            eyePositions.forEach((pos, index) => {
+                const eyeGroup = new THREE.Group();
+                
+                // Eye socket (recessed area)
+                const socketGeo = new THREE.SphereGeometry(0.18, 32, 32);
+                const socketMat = new THREE.MeshStandardMaterial({
+                    color: 0xe8c4b0,
+                    roughness: 0.7,
+                    metalness: 0
+                });
+                const socket = new THREE.Mesh(socketGeo, socketMat);
+                socket.scale.set(1.2, 0.9, 0.7);
+                socket.position.z = -0.05;
+                eyeGroup.add(socket);
+
+                // Eyeball
+                const eyeballGeo = new THREE.SphereGeometry(0.15, 32, 32);
+                const eyeballMat = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    roughness: 0.05,
+                    metalness: 0.1
+                });
+                const eyeball = new THREE.Mesh(eyeballGeo, eyeballMat);
+                eyeGroup.add(eyeball);
+
+                // Iris with detail
+                const irisGeo = new THREE.CircleGeometry(0.07, 64);
+                const irisCanvas = document.createElement('canvas');
+                irisCanvas.width = 256;
+                irisCanvas.height = 256;
+                const irisCtx = irisCanvas.getContext('2d');
+                
+                const irisGrad = irisCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+                irisGrad.addColorStop(0, '#5ba3d0');
+                irisGrad.addColorStop(0.3, '#4a8ec2');
+                irisGrad.addColorStop(0.6, '#3a7aa8');
+                irisGrad.addColorStop(0.85, '#2d5f85');
+                irisGrad.addColorStop(1, '#1e3c55');
+                irisCtx.fillStyle = irisGrad;
+                irisCtx.fillRect(0, 0, 256, 256);
+                
+                // Iris patterns
+                for (let i = 0; i < 80; i++) {
+                    const angle = (i / 80) * Math.PI * 2;
+                    irisCtx.strokeStyle = `rgba(0, 0, 0, ${0.05 + Math.random() * 0.1})`;
+                    irisCtx.lineWidth = 0.5 + Math.random() * 1.5;
+                    irisCtx.beginPath();
+                    irisCtx.moveTo(128, 128);
+                    const wobble = Math.random() * 20 - 10;
+                    irisCtx.lineTo(
+                        128 + Math.cos(angle) * (110 + wobble),
+                        128 + Math.sin(angle) * (110 + wobble)
+                    );
+                    irisCtx.stroke();
+                }
+                
+                const irisTexture = new THREE.CanvasTexture(irisCanvas);
+                const irisMat = new THREE.MeshStandardMaterial({
+                    map: irisTexture,
+                    roughness: 0.2,
+                    metalness: 0.3
+                });
+                const iris = new THREE.Mesh(irisGeo, irisMat);
+                iris.position.z = 0.145;
+                eyeGroup.add(iris);
+
+                // Pupil
+                const pupilGeo = new THREE.CircleGeometry(0.028, 32);
+                const pupilMat = new THREE.MeshStandardMaterial({
+                    color: 0x000000,
+                    roughness: 0.1,
+                    metalness: 0.5
+                });
+                const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+                pupil.position.z = 0.146;
+                eyeGroup.add(pupil);
+
+                // Cornea (glossy overlay)
+                const corneaGeo = new THREE.SphereGeometry(0.16, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+                const corneaMat = new THREE.MeshPhysicalMaterial({
+                    color: 0xffffff,
+                    roughness: 0,
+                    metalness: 0,
+                    transparent: true,
+                    opacity: 0.12,
+                    transmission: 0.95,
+                    thickness: 0.1,
+                    ior: 1.4,
+                    reflectivity: 0.5
+                });
+                const cornea = new THREE.Mesh(corneaGeo, corneaMat);
+                cornea.position.z = 0.02;
+                eyeGroup.add(cornea);
+
+                // Upper eyelid
+                const upperLidGeo = new THREE.SphereGeometry(0.17, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2.2);
+                const lidMat = new THREE.MeshStandardMaterial({
+                    color: 0xffc9b0,
+                    roughness: 0.6,
+                    metalness: 0.02
+                });
+                const upperLid = new THREE.Mesh(upperLidGeo, lidMat);
+                upperLid.rotation.x = Math.PI;
+                upperLid.position.y = 0.08;
+                upperLid.userData = { type: 'upperLid' };
+                eyeGroup.add(upperLid);
+
+                // Lower eyelid
+                const lowerLidGeo = new THREE.SphereGeometry(0.17, 32, 16, 0, Math.PI * 2, Math.PI / 1.8, Math.PI / 2.5);
+                const lowerLid = new THREE.Mesh(lowerLidGeo, lidMat.clone());
+                lowerLid.position.y = -0.08;
+                lowerLid.userData = { type: 'lowerLid' };
+                eyeGroup.add(lowerLid);
+
+                // Eyelashes
+                const lashMat = new THREE.MeshStandardMaterial({
+                    color: 0x2a1810,
+                    roughness: 0.9
+                });
+
+                for (let i = 0; i < 25; i++) {
+                    const angle = (i / 25) * Math.PI - Math.PI / 2;
+                    const lash = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.002, 0.0005, 0.09, 3),
+                        lashMat
+                    );
+                    const radius = 0.17;
+                    lash.position.set(
+                        Math.cos(angle) * radius,
+                        0.05 + Math.sin(angle) * radius * 0.85,
+                        0.13
+                    );
+                    lash.rotation.z = angle;
+                    lash.rotation.x = 0.4;
+                    eyeGroup.add(lash);
+                }
+
+                eyeGroup.position.set(pos.x, pos.y, pos.z);
+                eyeGroup.userData = { upperLid, lowerLid, index };
+                eyes.add(eyeGroup);
+            });
+
+            face.add(eyes);
+        }
+
+        function createDetailedEyebrows() {
+            const browMat = new THREE.MeshStandardMaterial({
+                color: 0x3d2817,
+                roughness: 0.95
+            });
+
+            [-0.32, 0.32].forEach((xPos, idx) => {
+                const browGroup = new THREE.Group();
+                
+                for (let i = 0; i < 50; i++) {
+                    const t = i / 50;
+                    const x = (t - 0.5) * 0.45;
+                    const y = -Math.pow(x, 2) * 0.8 + 0.08;
+                    
+                    const strand = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.006, 0.002, 0.09, 4),
+                        browMat
+                    );
+                    
+                    strand.position.set(x * (idx === 0 ? -1 : 1), y, 0);
+                    strand.rotation.z = x * 0.7 + (Math.random() - 0.5) * 0.25;
+                    strand.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.2;
+                    strand.rotation.y = (Math.random() - 0.5) * 0.3;
+                    
+                    browGroup.add(strand);
+                }
+                
+                browGroup.position.set(xPos, 0.6, 0.9);
+                browGroup.userData = { index: idx };
+                face.add(browGroup);
+            });
+        }
+
+        function createDetailedNose() {
+            const noseGroup = new THREE.Group();
+            const noseMat = new THREE.MeshStandardMaterial({
+                color: 0xffc9b0,
+                roughness: 0.6,
+                metalness: 0.03
+            });
+
+            // Nose bridge
+            const bridgeGeo = new THREE.BoxGeometry(0.12, 0.55, 0.18);
+            for (let i = 0; i < bridgeGeo.attributes.position.count; i++) {
+                const y = bridgeGeo.attributes.position.getY(i);
+                const z = bridgeGeo.attributes.position.getZ(i);
+                bridgeGeo.attributes.position.setZ(i, z + Math.abs(y) * 0.15);
+            }
+            bridgeGeo.attributes.position.needsUpdate = true;
+            
+            const bridge = new THREE.Mesh(bridgeGeo, noseMat);
+            bridge.position.set(0, 0.15, 0.05);
+            noseGroup.add(bridge);
+
+            // Nose tip
+            const tipGeo = new THREE.SphereGeometry(0.11, 32, 32);
+            const tip = new THREE.Mesh(tipGeo, noseMat);
+            tip.scale.set(1.3, 0.85, 1.1);
+            tip.position.set(0, -0.12, 0.08);
+            noseGroup.add(tip);
+
+            // Nose wings
+            const wingGeo = new THREE.SphereGeometry(0.08, 32, 32);
+            [-0.09, 0.09].forEach(x => {
+                const wing = new THREE.Mesh(wingGeo, noseMat);
+                wing.scale.set(1.2, 0.8, 0.9);
+                wing.position.set(x, -0.18, 0.06);
+                noseGroup.add(wing);
+            });
+
+            // Nostrils
+            const nostrilGeo = new THREE.SphereGeometry(0.04, 16, 16);
+            const nostrilMat = new THREE.MeshStandardMaterial({
+                color: 0x1a0f0a,
+                roughness: 0.95
+            });
+
+            [-0.075, 0.075].forEach(x => {
+                const nostril = new THREE.Mesh(nostrilGeo, nostrilMat);
+                nostril.scale.set(1, 0.7, 1.3);
+                nostril.position.set(x, -0.2, 0.1);
+                noseGroup.add(nostril);
+            });
+
+            noseGroup.position.set(0, 0, 1.05);
+            noseGroup.userData = { type: 'nose' };
+            face.add(noseGroup);
+        }
+
+        function createDetailedMouth() {
+            mouth = new THREE.Group();
+
+            // Mouth cavity
+            const cavityGeo = new THREE.SphereGeometry(0.28, 32, 32, 0, Math.PI, 0, Math.PI / 2);
+            const cavityMat = new THREE.MeshStandardMaterial({
+                color: 0x2a1515,
+                roughness: 0.95,
+                metalness: 0
+            });
+            const cavity = new THREE.Mesh(cavityGeo, cavityMat);
+            cavity.rotation.x = Math.PI / 2;
+            cavity.position.z = -0.08;
+            cavity.userData = { type: 'cavity' };
+            mouth.add(cavity);
+
+            // Teeth
+            const teethMat = new THREE.MeshStandardMaterial({
+                color: 0xfff5e6,
+                roughness: 0.15,
+                metalness: 0.2
+            });
+
+            const upperTeeth = new THREE.Mesh(
+                new THREE.BoxGeometry(0.38, 0.075, 0.12),
+                teethMat
+            );
+            upperTeeth.position.set(0, 0.055, 0);
+            mouth.add(upperTeeth);
+
+            const lowerTeeth = new THREE.Mesh(
+                new THREE.BoxGeometry(0.35, 0.07, 0.11),
+                teethMat.clone()
+            );
+            lowerTeeth.position.set(0, -0.055, 0);
+            lowerTeeth.userData = { type: 'lowerTeeth' };
+            mouth.add(lowerTeeth);
+
+            // Lips
+            const lipMat = new THREE.MeshStandardMaterial({
+                color: 0xc96176,
+                roughness: 0.45,
+                metalness: 0.25
+            });
+
+            // Upper lip with better shape
+            const upperLipShape = new THREE.Shape();
+            upperLipShape.moveTo(-0.25, 0);
+            upperLipShape.quadraticCurveTo(-0.12, 0.06, 0, 0.08);
+            upperLipShape.quadraticCurveTo(0.12, 0.06, 0.25, 0);
+            upperLipShape.quadraticCurveTo(0.12, -0.02, 0, -0.03);
+            upperLipShape.quadraticCurveTo(-0.12, -0.02, -0.25, 0);
+
+            const upperLipGeo = new THREE.ExtrudeGeometry(upperLipShape, {
+                depth: 0.08,
+                bevelEnabled: true,
+                bevelThickness: 0.02,
+                bevelSize: 0.02,
+                bevelSegments: 8
+            });
+            
+            const upperLip = new THREE.Mesh(upperLipGeo, lipMat);
+            upperLip.position.set(0, 0.065, 0.02);
+            upperLip.userData = { type: 'upperLip' };
+            mouth.add(upperLip);
+
+            // Lower lip
+            const lowerLipShape = new THREE.Shape();
+            lowerLipShape.moveTo(-0.23, 0);
+            lowerLipShape.quadraticCurveTo(-0.11, -0.08, 0, -0.09);
+            lowerLipShape.quadraticCurveTo(0.11, -0.08, 0.23, 0);
+            lowerLipShape.quadraticCurveTo(0.11, 0.02, 0, 0.03);
+            lowerLipShape.quadraticCurveTo(-0.11, 0.02, -0.23, 0);
+
+            const lowerLipGeo = new THREE.ExtrudeGeometry(lowerLipShape, {
+                depth: 0.09,
+                bevelEnabled: true,
+                bevelThickness: 0.025,
+                bevelSize: 0.025,
+                bevelSegments: 8
+            });
+            
+            const lowerLip = new THREE.Mesh(lowerLipGeo, lipMat.clone());
+            lowerLip.position.set(0, -0.065, 0.02);
+            lowerLip.userData = { type: 'lowerLip' };
+            mouth.add(lowerLip);
+
+            // Lip corners
+            const cornerGeo = new THREE.SphereGeometry(0.035, 16, 16);
+            [-0.24, 0.24].forEach(x => {
+                const corner = new THREE.Mesh(cornerGeo, lipMat.clone());
+                corner.position.set(x, 0, 0.06);
+                corner.userData = { type: 'corner', x };
+                mouth.add(corner);
+            });
+
+            mouth.position.set(0, -0.42, 0.95);
+            face.add(mouth);
+        }
+
+        function createDetailedEars() {
+            const earMat = new THREE.MeshStandardMaterial({
+                color: 0xffc4a8,
+                roughness: 0.65,
+                metalness: 0.02
+            });
+
+            [-0.95, 0.95].forEach(side => {
+                const earGroup = new THREE.Group();
+                
+                // Outer ear
+                const outerGeo = new THREE.SphereGeometry(0.22, 32, 32, 0, Math.PI);
+                const outer = new THREE.Mesh(outerGeo, earMat);
+                outer.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
+                outer.scale.set(0.8, 1.2, 0.6);
+                earGroup.add(outer);
+
+                // Inner ear cavity
+                const innerGeo = new THREE.SphereGeometry(0.12, 32, 32);
+                const innerMat = new THREE.MeshStandardMaterial({
+                    color: 0xe8b494,
+                    roughness: 0.8
+                });
+                const inner = new THREE.Mesh(innerGeo, innerMat);
+                inner.position.set(side * 0.05, 0, 0);
+                inner.scale.set(0.7, 0.9, 0.5);
+                earGroup.add(inner);
+
+                // Earlobe
+                const lobeGeo = new THREE.SphereGeometry(0.08, 32, 32);
+                const lobe = new THREE.Mesh(lobeGeo, earMat);
+                lobe.position.set(side * 0.02, -0.18, 0);
+                lobe.scale.set(1, 1.2, 0.8);
+                earGroup.add(lobe);
+
+                earGroup.position.set(side, 0.1, 0.15);
+                earGroup.rotation.y = side > 0 ? -0.3 : 0.3;
+                earGroup.rotation.z = side > 0 ? -0.2 : 0.2;
+                
+                face.add(earGroup);
+            });
+        }
+
+        function updateFacialExpression() {
+            const m = currentMorphs;
+
+            // Update eyebrows
+            face.children.forEach(child => {
+                if (child.userData.index !== undefined && child.children.length > 40) {
+                    const idx = child.userData.index;
+                    const baseY = 0.6;
+                    const baseZ = 0.9;
+                    
+                    child.position.y = baseY + m.browHeight * 0.2;
+                    child.position.z = baseZ + m.browHeight * 0.05;
+                    
+                    const innerRotation = idx === 0 ? m.browInner * 0.25 : -m.browInner * 0.25;
+                    const outerRotation = idx === 0 ? -m.browCurve * 0.2 : m.browCurve * 0.2;
+                    child.rotation.z = innerRotation + outerRotation;
+                }
+            });
+
+            // Update eyes
+            if (eyes) {
+                eyes.children.forEach(eyeGroup => {
+                    const upperLid = eyeGroup.userData.upperLid;
+                    const lowerLid = eyeGroup.userData.lowerLid;
+                    
+                    if (upperLid && lowerLid) {
+                        const openAmount = m.eyeOpen - m.eyeSquint * 0.5 + m.eyeWide * 0.3;
+                        upperLid.position.y = 0.08 - openAmount * 0.12;
+                        lowerLid.position.y = -0.08 + openAmount * 0.08;
+                        
+                        upperLid.scale.y = 1 + m.eyeSquint * 0.15;
+                        lowerLid.scale.y = 1 - m.eyeSquint * 0.1;
+                    }
+                });
+            }
+
+            // Update mouth
+            if (mouth) {
+                const baseY = -0.42;
+                mouth.position.y = baseY - m.jawDrop * 0.18;
+                mouth.scale.set(
+                    1 + m.mouthWidth * 0.25 + m.mouthCorner * 0.2,
+                    1 + m.mouthOpen * 0.4,
+                    1 + m.lipPucker * 0.35
+                );
+
+                mouth.children.forEach(child => {
+                    if (child.userData.type === 'upperLip') {
+                        child.position.y = 0.065 + m.upperLip * 0.08 + m.mouthCorner * 0.04;
+                    } else if (child.userData.type === 'lowerLip') {
+                        child.position.y = -0.065 - m.lowerLip * 0.08 - m.jawDrop * 0.12;
+                    } else if (child.userData.type === 'lowerTeeth') {
+                        child.position.y = -0.055 - m.jawDrop * 0.08;
+                    } else if (child.userData.type === 'corner') {
+                        const x = child.userData.x;
+                        child.position.y = m.mouthCorner * 0.06;
+                        child.position.x = x * (1 + m.mouthCorner * 0.08);
+                    } else if (child.userData.type === 'cavity') {
+                        child.scale.y = 1 + m.mouthOpen * 0.5;
+                    }
+                });
+            }
+
+            // Update nose
+            face.children.forEach(child => {
+                if (child.userData.type === 'nose') {
+                    child.scale.x = 1 + m.noseWrinkle * 0.12;
+                    child.position.y = m.noseWrinkle * 0.03;
+                }
+            });
+        }
+
+        function changeEmotion(emotion) {
+            currentEmotion = emotion;
+            targetMorphs = { ...emotions[emotion] };
+            document.getElementById('current-emotion').textContent = 
+                `Current: ${emotion.charAt(0).toUpperCase() + emotion.slice(1)}`;
+        }
+
+        function onMouseMove(event) {
+            mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
+            mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Smooth morphing
+            for (let key in currentMorphs) {
+                const diff = targetMorphs[key] - currentMorphs[key];
+                currentMorphs[key] += diff * animationSpeed;
+            }
+
+            updateFacialExpression();
+
+            // Natural head movement
+            if (face) {
+                face.rotation.y = mouseX * 0.25 + Math.sin(Date.now() * 0.0003) * 0.03;
+                face.rotation.x = -mouseY * 0.15 + Math.cos(Date.now() * 0.0004) * 0.02;
+                face.position.y = Math.sin(Date.now() * 0.0008) * 0.03;
+            }
+
+            // Blinking
+            blinkTimer += 16;
+            if (blinkTimer > nextBlink) {
+                if (eyes) {
+                    eyes.children.forEach(eyeGroup => {
+                        const upperLid = eyeGroup.userData.upperLid;
+                        const lowerLid = eyeGroup.userData.lowerLid;
+                        if (upperLid && lowerLid) {
+                            const blinkPhase = (Date.now() % 400) / 400;
+                            if (blinkPhase < 0.5) {
+                                const blink = Math.sin(blinkPhase * Math.PI * 2);
+                                upperLid.position.y = 0.08 - currentMorphs.eyeOpen * 0.12 - blink * 0.15;
+                                lowerLid.position.y = -0.08 + currentMorphs.eyeOpen * 0.08 + blink * 0.1;
+                            }
+                        }
+                    });
+                }
+                
+                if (blinkTimer > nextBlink + 400) {
+                    blinkTimer = 0;
+                    nextBlink = Math.random() * 3000 + 2000;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
+
