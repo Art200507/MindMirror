@@ -42,6 +42,14 @@ class MorphCastService {
    */
   async initialize(videoElement) {
     try {
+      if (!window.isSecureContext) {
+        throw new Error('Camera access requires https or http://localhost (file:// will not work).');
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access is not supported in this browser.');
+      }
+
       this.videoElement = videoElement;
 
       // Request camera access

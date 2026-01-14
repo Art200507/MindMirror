@@ -14,6 +14,6 @@ This folder contains the computer vision and mood-music components that were sep
 - Update `spotify-config.js` with your Spotify app credentials before using the music demos.
 
 ## Quick start
-Open a demo directly in the browser, for example:
-- `mood-music/mood-music-standalone.html`
-
+Serve the folder so the SDK and camera APIs run in a secure context (file:// will not work):
+- `python3 -m http.server 8000` (run from `computer-vision/`)
+- Open `http://localhost:8000/mood-music/mood-music-standalone.html`
