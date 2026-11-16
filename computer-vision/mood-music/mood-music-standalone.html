@@ -1513,6 +1513,9 @@
       }
 
       async handleStartAnalysis() {
+        const button=document.getElementById('start-analysis-btn');
+        if(button.disabled)return;
+        button.disabled=true;
         try {
           const cameraStatus = document.getElementById('camera-status').querySelector('span');
           cameraStatus.textContent = 'Initializing camera...';
@@ -1522,12 +1525,15 @@
           cameraStatus.textContent = 'Loading MorphCast AI...';
 
           // Wait for MorphCast
-          const morphCastReady = new Promise((resolve) => {
-            if (window.morphCastStart) {
-              resolve();
-            } else {
-              window.addEventListener('MORPHCAST_READY', resolve, { once: true });
-            }
+          const morphCastReady = new Promise((resolve,reject) => {
+            if(window.morphCastStart){resolve();return;}
+            if(window.morphCastError){reject(new Error('Emotion analysis is unavailable. Please try again later.'));return;}
+            const cleanup=()=>{clearTimeout(timer);window.removeEventListener('MORPHCAST_READY',ready);window.removeEventListener('MORPHCAST_ERROR',failed);};
+            const ready=()=>{cleanup();resolve();};
+            const failed=()=>{cleanup();reject(new Error('Emotion analysis could not load. Please try again later.'));};
+            const timer=setTimeout(failed,20000);
+            window.addEventListener('MORPHCAST_READY',ready,{once:true});
+            window.addEventListener('MORPHCAST_ERROR',failed,{once:true});
           });
 
           await morphCastReady;
@@ -1554,7 +1560,11 @@
           // Music section stays hidden until user captures mood
 
         } catch (error) {
-          alert(`Error: ${error.message}`);
+          this.morphcastService.cleanup();
+          if(window.morphCastStop) await Promise.resolve(window.morphCastStop()).catch(()=>{});
+          document.getElementById('camera-status').querySelector('span').textContent=error.name==='NotAllowedError'?'Camera access was declined. You can allow it in your browser and retry.':error.message;
+        } finally {
+          button.disabled=false;
         }
       }
 
@@ -1887,8 +1897,10 @@
 
     // Initialize MorphCast
     (function() {
+      const sdkDeadline=Date.now()+20000;
       const initMorphCast = () => {
         if (typeof CY === 'undefined' || !CY.loader) {
+          if(Date.now()>sdkDeadline){window.morphCastError=true;window.dispatchEvent(new Event('MORPHCAST_ERROR'));return;}
           setTimeout(initMorphCast, 100);
           return;
         }
@@ -1904,7 +1916,7 @@
             window.morphCastStop = stop;
             window.dispatchEvent(new CustomEvent('MORPHCAST_READY', { detail: { start, stop } }));
           })
-          .catch((error) => console.error('[MorphCast] Error:', error));
+          .catch(() => {window.morphCastError=true;window.dispatchEvent(new Event('MORPHCAST_ERROR'));});
       };
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initMorphCast);
