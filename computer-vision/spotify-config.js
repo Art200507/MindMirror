@@ -6,7 +6,7 @@
 const SPOTIFY_CONFIG = {
   // Get these from: https://developer.spotify.com/dashboard
   CLIENT_ID: 'b85ef6fd86204f928a613f854527be37',
-  CLIENT_SECRET: 'd437afcb10224a94913090008e9fc3df',
+  CLIENT_SECRET: "",
 
   // Chrome extension redirect URI (must match what you added in Spotify Dashboard)
   REDIRECT_URI: 'https://b85ef6fd86204f928a613f854527be37.chromiumapp.org/callback',
